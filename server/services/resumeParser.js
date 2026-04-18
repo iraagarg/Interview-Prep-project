@@ -1,13 +1,16 @@
-const fs = require('fs');
+const axios = require('axios');
 const pdfParse = require('pdf-parse');
 
 /**
- * Extract text content from a PDF file
+ * Extract text content from a PDF file via Cloudinary URL
  */
-const extractTextFromPDF = async (filePath) => {
+const extractTextFromPDF = async (fileUrl) => {
   try {
-    const dataBuffer = fs.readFileSync(filePath);
-    const data = await pdfParse(dataBuffer);
+    const response = await axios.get(fileUrl, {
+      responseType: 'arraybuffer'
+    });
+    const buffer = Buffer.from(response.data);
+    const data = await pdfParse(buffer);
     return data.text || '';
   } catch (error) {
     console.error('PDF parsing error:', error.message);

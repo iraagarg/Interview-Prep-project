@@ -11,9 +11,13 @@ const resumeSchema = new mongoose.Schema(
       type: String,
       required: true
     },
-    filePath: {
-      type: String,
+    fileUrl: {
+      type: String,  // now stores Cloudinary https:// URL instead of local path
       required: true
+    },
+    publicId: {
+      type: String,  // Cloudinary public ID — used for deletion
+      default: ''
     },
     rawText: {
       type: String,
