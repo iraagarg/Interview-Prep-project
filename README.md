@@ -1,5 +1,7 @@
 # 🧠 InterviewAI - AI-Powered Interview Preparation Platform
 
+🌐 **Live Demo:** [Click Here](interview-prep-project-nu.vercel.app)
+
 A full-stack web application for AI-driven mock interviews, resume analysis, and performance tracking.
 
 ## 🚀 Quick Start
