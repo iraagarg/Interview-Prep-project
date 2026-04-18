@@ -9,98 +9,107 @@ A full-stack web application for AI-driven mock interviews, resume analysis, and
 ### Prerequisites
 - Node.js v18+
 - MongoDB Atlas account
-- OpenAI API key
+- Cloudinary account for resume uploads
+- Groq API key 
 
-### 1. Clone & Setup Environment
 
-**Backend:**
+### 1. Run the backend
 ```bash
 cd server
 cp .env.example .env
-# Fill in your MongoDB URI and OpenAI API key in .env
+# Fill in your MongoDB URI, Cloudinary credentials, and GROQ_API_KEY in server/.env
 npm install
 npm run dev
 ```
 
-**Frontend:**
+### 2. Run the frontend
 ```bash
 cd client
 npm install
 npm run dev
 ```
 
-### 2. Environment Variables (server/.env)
+### 3. Open the app
+- Frontend: `http://localhost:5173`
+- Backend health check: `http://localhost:5001/api/health`
+
+## 🔧 Environment Variables (server/.env)
 
 ```env
-PORT=5000
-MONGODB_URI=mongodb+srv://<user>:<pass>@cluster.mongodb.net/interview-prep
+PORT=5001
+MONGODB_URI=your_mongo_connection_string
 JWT_SECRET=your_super_secret_key
-JWT_EXPIRE=7d
-OPENAI_API_KEY=sk-...
+JWT_EXPIRE=30d
+GROQ_API_KEY=your_groq_api_key_here
 CLIENT_URL=http://localhost:5173
 NODE_ENV=development
+CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 ```
 
-## 📂 Project Structure
+## 📁 Project Structure
 
 ```
-interview-prep-platform/
+interview-prep-project/
 ├── server/                    # Express.js backend
 │   ├── controllers/           # Route handlers
 │   ├── models/                # Mongoose schemas
 │   ├── routes/                # Express routes
-│   ├── middlewares/           # Auth & upload middleware
-│   ├── services/              # OpenAI & PDF services
+│   ├── middlewares/           # Auth & file upload middleware
+│   ├── services/              # AI + resume parsing services
 │   └── index.js               # Server entry point
-│
 └── client/                    # React.js frontend
     └── src/
         ├── components/        # Reusable UI components
-        ├── pages/             # Page components
+        ├── pages/             # Page views
         ├── context/           # Auth context
-        └── utils/             # API client & auth helpers
+        └── utils/             # API client + auth helpers
 ```
 
 ## ✨ Features
-
-- 🔐 **JWT Authentication** - Secure register/login with bcrypt
-- 📄 **Resume Analysis** - PDF upload + AI-powered insights
-- 🤖 **Mock Interviews** - Real-time AI chat-based interviews
-- 📊 **Analytics Dashboard** - Scores, trends, and radar charts
-- 📜 **Interview History** - Past sessions with detailed reports
-- 👤 **Profile Management** - Skills, experience, target role
+- 🔐 JWT-based authentication with secure password handling
+- 📄 Resume upload and AI-powered review
+- 🤖 Mock interview flows with AI-driven follow-up questions
+- 📊 Analytics dashboard and performance history
+- 📜 Interview session tracking and chat history
+- 👤 Profile management and user settings
 
 ## 🛠️ Tech Stack
-
 | Layer | Technology |
-|-------|-----------|
-| Frontend | React.js + Vite |
+|-------|------------|
+| Frontend | React + Vite |
 | Styling | Tailwind CSS v4 |
 | Charts | Recharts |
 | Backend | Node.js + Express |
 | Database | MongoDB + Mongoose |
-| AI | OpenAI GPT-3.5 Turbo |
-| Auth | JWT + bcrypt |
-| PDF | pdf-parse + Multer |
+| AI | Groq AI (llama models) |
+| Auth | JWT + bcryptjs |
+| File upload | Multer + Cloudinary |
 
 ## 📡 API Endpoints
-
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | /api/auth/register | Register user |
-| POST | /api/auth/login | Login |
-| GET | /api/auth/me | Get profile |
-| POST | /api/resume/upload | Upload PDF resume |
-| GET | /api/resume | Get latest resume |
-| POST | /api/interview | Create session |
-| POST | /api/chat/start/:id | Start AI interview |
-| POST | /api/chat/message/:id | Send message |
-| POST | /api/chat/end/:id | End & get feedback |
-| GET | /api/analytics/overview | Overall stats |
-| GET | /api/analytics/progress | Score over time |
+| POST | /api/auth/login | Authenticate user |
+| GET | /api/auth/me | Get current user profile |
+| PUT | /api/auth/profile | Update user profile |
+| PUT | /api/auth/password | Change password |
+| POST | /api/resume/upload | Upload resume PDF |
+| GET | /api/resume | Get latest resume summary |
+| GET | /api/resume/all | List all uploaded resumes |
+| DELETE | /api/resume/:id | Delete a resume |
+| POST | /api/resume/:id/analyze | Reanalyze a specific resume |
+| POST | /api/interview | Create interview session |
+| GET | /api/interview | List interview sessions |
+| GET | /api/interview/:id | Get interview details |
+| PUT | /api/interview/:id/complete | Mark interview complete |
+| DELETE | /api/interview/:id | Delete interview session |
+| POST | /api/chat/start/:interviewId | Start interview chat |
+| POST | /api/chat/message/:interviewId | Send chat message |
+| POST | /api/chat/end/:interviewId | End chat session |
+| GET | /api/chat/messages/:interviewId | Fetch chat history |
+| GET | /api/analytics/overview | Overview analytics |
+| GET | /api/analytics/skills | Skill analytics |
+| GET | /api/analytics/progress | Progress over time |
 
-## 🚀 Deployment
-
-- **Frontend**: Vercel (`npm run build` → deploy `dist/`)
-- **Backend**: Render/Railway (set env vars in dashboard)
-- **Database**: MongoDB Atlas
