@@ -1,19 +1,21 @@
 const express = require('express');
-const router = express.Router();
 const { protect } = require('../middlewares/auth');
+const { aiLimiter } = require('../middlewares/rateLimit');
 const upload = require('../middlewares/upload');
 const {
   uploadResume,
   getResume,
   getAllResumes,
   deleteResume,
-  reanalyzeResume
+  reanalyzeResume,
 } = require('../controllers/resumeController');
 
-router.post('/upload', protect, upload.single('resume'), uploadResume);
+const router = express.Router();
+
+router.post('/upload', protect, aiLimiter, upload.single('resume'), uploadResume);
 router.get('/', protect, getResume);
 router.get('/all', protect, getAllResumes);
 router.delete('/:id', protect, deleteResume);
-router.post('/:id/analyze', protect, reanalyzeResume);
+router.post('/:id/analyze', protect, aiLimiter, reanalyzeResume);
 
 module.exports = router;
