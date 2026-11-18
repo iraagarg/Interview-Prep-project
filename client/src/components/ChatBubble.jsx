@@ -7,7 +7,7 @@ const ChatBubble = ({ message, isAI, timestamp }) => {
 
   if (isAI) {
     return (
-      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', maxWidth: '82%', animation: 'fadeInUp 0.3s ease' }}>
+      <div className="chat-row" style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', maxWidth: '82%', animation: 'fadeInUp 0.3s ease' }}>
         <div style={{
           width: 36,
           height: 36,
@@ -35,7 +35,7 @@ const ChatBubble = ({ message, isAI, timestamp }) => {
   }
 
   return (
-    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', maxWidth: '82%', marginLeft: 'auto', flexDirection: 'row-reverse', animation: 'fadeInUp 0.3s ease' }}>
+    <div className="chat-row" style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', maxWidth: '82%', marginLeft: 'auto', flexDirection: 'row-reverse', animation: 'fadeInUp 0.3s ease' }}>
       <div style={{
         width: 36,
         height: 36,

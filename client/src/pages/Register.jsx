@@ -145,7 +145,7 @@ const Register = () => {
             </div>
 
             {/* Target Role + Experience */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div className="rgrid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.4rem' }}>Target Role</label>
                 <div style={{ position: 'relative' }}>

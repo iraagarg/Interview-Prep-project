@@ -376,3 +376,69 @@ select.input {
   height: 3px;
   background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
 }
+
+/* ── Responsive layout ─────────────────────────────────────────── */
+.mobile-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  height: 56px;
+  padding: 0 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(10, 10, 15, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 1050;
+}
+
+@media (max-width: 768px) {
+  .page-layout { flex-direction: column; }
+  .main-content { padding: 1rem; overflow-x: hidden; }
+  .section-title { font-size: 1.4rem; }
+  .rgrid { grid-template-columns: 1fr !important; }
+  .rgrid-2 { grid-template-columns: repeat(2, 1fr) !important; row-gap: 1.5rem !important; }
+  .hide-mobile { display: none !important; }
+}
+
+/* Interview chat fills the viewport below the (mobile) top bar */
+.chat-screen { height: calc(100dvh - 4rem); }
+@media (max-width: 768px) {
+  .chat-screen { height: calc(100dvh - 56px - 2rem); }
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+@media (max-width: 1100px) {
+  .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 768px) {
+  .stat-grid { gap: 0.75rem; }
+  .landing-header { padding: 0 1rem !important; }
+}
+@media (max-width: 768px) {
+  .chat-row { max-width: 100% !important; gap: 0.5rem !important; }
+}

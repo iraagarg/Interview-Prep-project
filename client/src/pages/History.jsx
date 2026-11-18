@@ -78,7 +78,7 @@ const InterviewCard = ({ interview, onDelete }) => {
 
       {/* Expanded Details */}
       {expanded && interview.status === 'completed' && interview.feedback?.overallScore > 0 && (
-        <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--color-border)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+        <div className="rgrid" style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--color-border)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
           <ScoreCard feedback={interview.feedback} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             <FeedbackCard title="Strengths" items={interview.feedback.strengths || []} type="success" />

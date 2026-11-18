@@ -105,7 +105,7 @@ const ScoreCard = ({ feedback }) => {
       )}
 
       {/* Strengths & Improvements side by side */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+      <div className="rgrid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
         {feedback.strengths?.length > 0 && (
           <div>
             <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-success)', marginBottom: '0.5rem' }}>

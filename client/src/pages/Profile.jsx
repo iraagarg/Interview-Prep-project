@@ -102,9 +102,9 @@ const Profile = () => {
         }}>
           {user?.name?.charAt(0)?.toUpperCase()}
         </div>
-        <div>
-          <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: '1.3rem', marginBottom: '0.25rem' }}>{user?.name}</div>
-          <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>{user?.email}</div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: '1.3rem', marginBottom: '0.25rem', overflowWrap: 'anywhere' }}>{user?.name}</div>
+          <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', marginBottom: '0.5rem', overflowWrap: 'anywhere' }}>{user?.email}</div>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             {user?.totalInterviews > 0 && (
               <span className="badge badge-primary">
@@ -144,7 +144,7 @@ const Profile = () => {
               <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.3rem' }}>Email cannot be changed</p>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="rgrid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
                 <LabelRow label="Target Role" icon={Briefcase} />
                 <input

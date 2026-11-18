@@ -89,7 +89,7 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Row */}
-      <div style={{ display: 'flex', gap: '1.25rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+      <div className="stat-grid" style={{ marginBottom: '2rem' }}>
         <QuickStat
           label="Total Interviews"
           value={stats?.totalInterviews || 0}
@@ -163,7 +163,7 @@ const Dashboard = () => {
       </div>
 
       {/* Recent Interviews */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+      <div className="rgrid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
         <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
             <h2 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: '1.1rem' }}>Recent Sessions</h2>

@@ -31,7 +31,8 @@ const Analytics = () => {
     }
   };
 
-  useEffect(() => { fetchData(); }, [period]);
+  // Refetch whenever the selected period changes; fetchData only reads `period`
+  useEffect(() => { fetchData(); }, [period]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) return <LoadingSpinner message="Loading analytics..." />;
 
@@ -103,7 +104,7 @@ const Analytics = () => {
       </div>
 
       {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+      <div className="rgrid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
         {[
           { label: 'Total Sessions', value: overview.totalInterviews, icon: Zap, color: '#6c63ff' },
           { label: 'Completed', value: overview.completedInterviews, icon: Target, color: '#00e676' },
@@ -127,7 +128,7 @@ const Analytics = () => {
       </div>
 
       {/* Charts */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+      <div className="rgrid" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
         <div className="card">
           <h3 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, marginBottom: '1rem', fontSize: '1rem' }}>
             Score Trend ({period} days)
@@ -150,7 +151,7 @@ const Analytics = () => {
 
       {/* Strengths & Improvements */}
       {skills && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+        <div className="rgrid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
           <FeedbackCard
             title="Top Strengths"
             items={skills.topStrengths.map(s => s.text)}

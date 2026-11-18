@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -12,7 +12,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Brain,
-  Sparkles
+  Sparkles,
+  Menu,
+  X
 } from 'lucide-react';
 
 const navItems = [
@@ -24,32 +26,101 @@ const navItems = [
   { path: '/profile', label: 'Profile', icon: User },
 ];
 
+const MOBILE_QUERY = '(max-width: 768px)';
+
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia(MOBILE_QUERY).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(MOBILE_QUERY);
+    const onChange = (e) => setIsMobile(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return isMobile;
+};
+
 const Navbar = () => {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsedPref, setCollapsed] = useState(false);
+  // The drawer remembers the path it was opened on, so navigating closes it automatically
+  const [drawerPath, setDrawerPath] = useState(null);
+  const isMobile = useIsMobile();
+  const collapsed = isMobile ? false : collapsedPref;
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+
+  const drawerOpen = drawerPath === location.pathname;
+  const setDrawerOpen = (open) => setDrawerPath(open ? location.pathname : null);
+
+  // Lock background scroll while the drawer is open
+  useEffect(() => {
+    document.body.style.overflow = isMobile && drawerOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [isMobile, drawerOpen]);
 
   const handleLogout = () => {
     logout();
     navigate('/');
   };
 
+  const currentLabel = navItems.find((n) => n.path === location.pathname)?.label || 'InterviewAI';
+
+  const desktopStyle = {
+    width: collapsed ? 72 : 260,
+    height: '100vh',
+    position: 'sticky',
+    top: 0,
+    transition: 'width 0.3s ease',
+  };
+  const mobileStyle = {
+    width: 280,
+    maxWidth: '85vw',
+    height: '100dvh',
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    transform: drawerOpen ? 'translateX(0)' : 'translateX(-100%)',
+    transition: 'transform 0.25s ease',
+    boxShadow: drawerOpen ? '0 0 40px rgba(0,0,0,0.6)' : 'none',
+  };
+
   return (
+    <>
+    {isMobile && (
+      <header className="mobile-topbar">
+        <button
+          className="icon-btn"
+          aria-label={drawerOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={drawerOpen}
+          onClick={() => setDrawerOpen(!drawerOpen)}
+        >
+          {drawerOpen ? <X size={22} /> : <Menu size={22} />}
+        </button>
+        <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: '1.05rem' }}>{currentLabel}</span>
+        <div style={{
+          width: 34, height: 34, borderRadius: 10,
+          background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Brain size={18} color="white" />
+        </div>
+      </header>
+    )}
+    {isMobile && drawerOpen && (
+      <div className="drawer-backdrop" onClick={() => setDrawerOpen(false)} aria-hidden="true" />
+    )}
     <nav
+      aria-label="Main navigation"
       style={{
-        width: collapsed ? 72 : 260,
-        minHeight: '100vh',
         background: 'var(--color-surface)',
         borderRight: '1px solid var(--color-border)',
         display: 'flex',
         flexDirection: 'column',
-        transition: 'width 0.3s ease',
-        position: 'sticky',
-        top: 0,
-        overflow: 'hidden',
-        zIndex: 100,
+        overflowX: 'hidden',
+        overflowY: 'auto',
+        zIndex: 1100,
         flexShrink: 0,
+        ...(isMobile ? mobileStyle : desktopStyle),
       }}
     >
       {/* Logo */}
@@ -219,7 +290,7 @@ const Navbar = () => {
           {!collapsed && 'Logout'}
         </button>
 
-        <button
+        {!isMobile && <button
           onClick={() => setCollapsed(c => !c)}
           style={{
             display: 'flex',
@@ -242,9 +313,10 @@ const Navbar = () => {
               <ChevronLeft size={18} /> Collapse
             </span>
           )}
-        </button>
+        </button>}
       </div>
     </nav>
+    </>
   );
 };
 
