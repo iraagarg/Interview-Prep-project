@@ -3,7 +3,7 @@ const {
   analyzeResume,
   generateFeedback,
   continueInterview,
-  _internal: { parseJSON, normalizeFeedback, clampScore, transcriptOf, hasSkill },
+  _internal: { parseJSON, missingScores, normalizeFeedback, clampScore, transcriptOf, hasSkill },
 } = require('../services/aiService');
 
 describe('parseJSON', () => {
@@ -44,6 +44,14 @@ describe('normalisation of model output', () => {
     expect(out.strengths).toEqual(['clear', 'structured']);
     expect(out.improvements).toEqual([]);
     expect(out.recommendations).toEqual([]);
+  });
+
+  test('missingScores rejects scores the model wrote as words or left empty', () => {
+    const keys = ['overallScore', 'communication', 'technical'];
+    expect(missingScores({ overallScore: 74, communication: '81', technical: 66.5 }, keys)).toEqual([]);
+    expect(missingScores({ overallScore: 'thirty', communication: null, technical: '' }, keys))
+      .toEqual(['overallScore', 'communication', 'technical']);
+    expect(missingScores({}, ['overallScore'])).toEqual(['overallScore']);
   });
 });
 

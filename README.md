@@ -69,7 +69,7 @@ flowchart LR
 | Decision | Why |
 |---|---|
 | **Two models: fast for turns, strong for scoring** | Latency matters on every answer, while quality matters for the one final evaluation. Follow-up questions return in about 0.5 s. Model IDs are environment variables, so when the provider retired the original LLaMA models, the fix was a configuration change. |
-| **Schema-constrained output plus normalisation** | LLMs sometimes wrap JSON in prose or return out-of-range values. The parser strips code fences and extracts the JSON object, and every score is clamped to an integer from 0 to 100. The UI never receives a malformed score. |
+| **Validated JSON output** | Scoring calls use the provider's JSON mode, and every score must be a real number (a model once wrote `"thirty"`); an invalid response is retried once before falling back. Prompts use placeholders, not sample numbers, because the model was found copying example scores verbatim. Scores are clamped to integers from 0 to 100. In a 12-run check, strong answers scored 82 every time, weak ones 15 to 25, with no fallbacks. |
 | **Graceful degradation** | If the AI provider is down, rate-limited or misconfigured, the system returns rule-based results tagged `source: "fallback"` instead of an error, and the UI says so. The app was tested in exactly this state when the original models were retired. |
 | **Scores are written only by the server** | The client can never submit its own scores. An earlier endpoint that accepted client-supplied feedback was removed. |
 | **MongoDB, with embedded messages and feedback** | A session's transcript and feedback are always read together, so they are embedded in one document. Users, resumes and interviews have independent life cycles, so they are separate collections. Compound indexes on `{user, createdAt}` serve every list and analytics query. |
@@ -84,7 +84,7 @@ flowchart LR
 **Backend:** Node.js, Express, Mongoose, JWT, bcryptjs, Multer, express-rate-limit, Helmet
 **AI:** Groq API (configurable models; defaults `openai/gpt-oss-20b` for turns and `openai/gpt-oss-120b` for scoring)
 **Infrastructure:** MongoDB Atlas, Cloudinary, Vercel, Render, GitHub Actions
-**Testing:** Jest and Supertest (42 tests), ESLint
+**Testing:** Jest and Supertest (43 tests), ESLint
 
 ## Testing
 
@@ -92,13 +92,13 @@ flowchart LR
 cd server && npm test     # needs a local MongoDB, or set MONGODB_URI_TEST
 ```
 
-There are **42 automated tests**, run in CI against a real MongoDB on every push:
+There are **43 automated tests**, run in CI against a real MongoDB on every push:
 
 - **Authentication:** registration, case-insensitive login, no password leakage, tampered or missing tokens
 - **Access control:** a second user cannot read, answer, delete or link the first user's data (404, not 403, so existence isn't leaked)
 - **Interview state machine:** idempotent start and end, no answers after completion, abandon rules, input limits
 - **Uploads:** non-PDF files rejected, spoofed PDFs rejected, a real PDF parsed and analysed
-- **AI layer:** JSON extraction from noisy output, score clamping, transcript windowing, whole-word skill matching (so "Go" doesn't match "Google"), and fallbacks
+- **AI layer:** JSON extraction from noisy output, rejection of non-numeric scores, score clamping, transcript windowing, whole-word skill matching (so "Go" doesn't match "Google"), and fallbacks
 
 ## Performance (measured)
 

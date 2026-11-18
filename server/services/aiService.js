@@ -26,7 +26,7 @@ const getClient = () => {
   return cachedClient;
 };
 
-const generate = async (prompt, { fast = false, maxTokens = 1024 } = {}) => {
+const generate = async (prompt, { fast = false, maxTokens = 1024, json = false } = {}) => {
   const client = getClient();
   if (!client) throw new Error('NO_API_KEY');
   const model = fast ? FAST_MODEL : MODEL;
@@ -34,9 +34,12 @@ const generate = async (prompt, { fast = false, maxTokens = 1024 } = {}) => {
   const params = {
     model,
     messages: [{ role: 'user', content: prompt }],
-    temperature: 0.7,
+    // evaluations should be consistent; conversation can be more varied
+    temperature: json ? 0.3 : 0.7,
     max_tokens: maxTokens,
   };
+  // provider-side JSON mode: the response is guaranteed to be a syntactically valid object
+  if (json) params.response_format = { type: 'json_object' };
   // gpt-oss models are reasoning models: keep reasoning short so the answer fits the budget
   if (model.startsWith('openai/gpt-oss')) {
     params.reasoning_effort = 'low';
@@ -60,6 +63,31 @@ const parseJSON = (text) => {
     if (match) return JSON.parse(match[0]);
     throw new Error('Could not parse AI response as JSON');
   }
+};
+
+// A score must be a real number. Without this check a value such as "thirty"
+// would be clamped to 0 and stored as if the model had meant it.
+const isNumeric = (v) =>
+  (typeof v === 'number' && Number.isFinite(v)) ||
+  (typeof v === 'string' && /^\s*\d+(\.\d+)?\s*$/.test(v));
+
+const missingScores = (raw, keys) => keys.filter((k) => !isNumeric(raw?.[k]));
+
+// JSON-mode call + parse + score validation, retried once before the caller falls back.
+const generateJSON = async (prompt, scoreKeys = [], attempts = 2) => {
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const raw = parseJSON(await generate(prompt, { json: true }));
+      const bad = missingScores(raw, scoreKeys);
+      if (bad.length) throw new Error(`Non-numeric score fields: ${bad.join(', ')}`);
+      return raw;
+    } catch (err) {
+      lastErr = err;
+      if (err.message === 'NO_API_KEY') break;
+    }
+  }
+  throw lastErr;
 };
 
 const clampScore = (v) => {
@@ -255,13 +283,13 @@ Return exactly this JSON structure, replacing every <...> placeholder with your 
   "strengths": ["<strength>", "..."],
   "weaknesses": ["<weakness>", "..."],
   "missingSkills": ["<skill commonly expected for their target roles but absent>", "..."],
-  "overallScore": <integer 0-100>,
+  "overallScore": <integer 0-100, written as digits>,
   "recommendations": ["<specific change the candidate should make to the resume>", "..."]
 }
 
 overallScore guide: 85-100 ready for top-company screening, 70-84 competitive with minor gaps, 50-69 needs clear improvements, below 50 major gaps. Judge evidence of impact (numbers, outcomes), relevance of projects and skills, and clarity. Base every point on the resume text only.`;
-    const text = await generate(prompt);
-    return { ...normalizeResumeAnalysis(parseJSON(text)), source: 'ai' };
+    const raw = await generateJSON(prompt, ['overallScore']);
+    return { ...normalizeResumeAnalysis(raw), source: 'ai' };
   } catch (err) {
     logFallback('analyzeResume', err);
     return { ...fallbackResumeAnalysis(resumeText), source: 'fallback' };
@@ -325,18 +353,18 @@ The feedback is read by the candidate, so write strengths, improvements, summary
 
 Return ONLY this JSON (no markdown, no explanation). Replace every <...> placeholder with your own evaluation:
 {
-  "overallScore": <integer 0-100>,
-  "communication": <integer 0-100>,
-  "technical": <integer 0-100>,
-  "problemSolving": <integer 0-100>,
-  "confidence": <integer 0-100>,
+  "overallScore": <integer 0-100, written as digits>,
+  "communication": <integer 0-100, written as digits>,
+  "technical": <integer 0-100, written as digits>,
+  "problemSolving": <integer 0-100, written as digits>,
+  "confidence": <integer 0-100, written as digits>,
   "strengths": ["<specific strength tied to an actual answer>", "..."],
   "improvements": ["<specific gap seen in an actual answer>", "..."],
   "summary": "<2-3 sentence personalised assessment based on the actual answers>",
   "recommendations": ["<specific action to practise before the next interview>", "..."]
 }`;
-    const text = await generate(prompt);
-    return { ...normalizeFeedback(parseJSON(text)), source: 'ai' };
+    const raw = await generateJSON(prompt, ['overallScore', 'communication', 'technical', 'problemSolving', 'confidence']);
+    return { ...normalizeFeedback(raw), source: 'ai' };
   } catch (err) {
     logFallback('generateFeedback', err);
     return { ...fallbackFeedback(messages), source: 'fallback' };
@@ -349,6 +377,6 @@ module.exports = {
   continueInterview,
   generateFeedback,
   // exported for unit tests
-  _internal: { parseJSON, normalizeFeedback, normalizeResumeAnalysis, clampScore, transcriptOf, fallbackResumeAnalysis, hasSkill },
+  _internal: { parseJSON, missingScores, normalizeFeedback, normalizeResumeAnalysis, clampScore, transcriptOf, fallbackResumeAnalysis, hasSkill },
   MODELS: { MODEL, FAST_MODEL },
 };
