@@ -7,7 +7,7 @@ const ResumeAnalysis = ({ resume }) => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', animation: 'fadeInUp 0.4s ease' }}>
       {/* Header */}
-      <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
         <div style={{
           width: 48,
           height: 48,
@@ -22,9 +22,11 @@ const ResumeAnalysis = ({ resume }) => {
           <FileText size={22} color="var(--color-primary)" />
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 600 }}>{fileName}</div>
+          <div style={{ fontWeight: 600, overflowWrap: 'anywhere' }}>{fileName}</div>
           <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
-            Resume analyzed successfully
+            {analysis?.source === 'fallback'
+              ? 'Keyword-based estimate (AI analysis was unavailable). Use Re-analyze later for full AI feedback.'
+              : 'Resume analyzed successfully'}
           </div>
         </div>
         <div className="badge badge-success">
@@ -75,7 +77,7 @@ const ResumeAnalysis = ({ resume }) => {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+      <div className="rgrid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
         {/* Strengths */}
         {analysis?.strengths?.length > 0 && (
           <div className="card">
