@@ -61,7 +61,8 @@ const ScoreRing = ({ score, size = 90, strokeWidth = 8, label }) => {
   );
 };
 
-const ScoreCard = ({ feedback }) => {
+// showLists=false when the page already renders strengths/improvements separately
+const ScoreCard = ({ feedback, showLists = true }) => {
   if (!feedback) return null;
 
   const metrics = [
@@ -105,6 +106,7 @@ const ScoreCard = ({ feedback }) => {
       )}
 
       {/* Strengths & Improvements side by side */}
+      {showLists && (
       <div className="rgrid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
         {feedback.strengths?.length > 0 && (
           <div>
@@ -131,6 +133,7 @@ const ScoreCard = ({ feedback }) => {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 };

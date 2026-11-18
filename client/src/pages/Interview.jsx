@@ -261,7 +261,7 @@ const Interview = () => {
         )}
 
         <div className="rgrid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-          <ScoreCard feedback={feedback} />
+          <ScoreCard feedback={feedback} showLists={false} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <FeedbackCard title="Strengths" items={feedback?.strengths || []} type="success" />
             <FeedbackCard title="Areas to Improve" items={feedback?.improvements || []} type="warning" />
