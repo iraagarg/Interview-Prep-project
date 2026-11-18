@@ -34,7 +34,9 @@ const interviewSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      default: 'Software Engineer'
+      default: 'Software Engineer',
+      trim: true,
+      maxlength: [80, 'Role cannot exceed 80 characters']
     },
     type: {
       type: String,
@@ -61,7 +63,9 @@ const interviewSchema = new mongoose.Schema(
       strengths: [String],
       improvements: [String],
       summary: { type: String, default: '' },
-      recommendations: [String]
+      recommendations: [String],
+      // 'ai' when produced by the language model, 'fallback' when the rule-based engine was used
+      source: { type: String, enum: ['ai', 'fallback', ''], default: '' }
     },
     duration: {
       type: Number, // in minutes
@@ -82,5 +86,9 @@ const interviewSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// Every list/analytics query filters by user and sorts by date
+interviewSchema.index({ user: 1, createdAt: -1 });
+interviewSchema.index({ user: 1, status: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Interview', interviewSchema);

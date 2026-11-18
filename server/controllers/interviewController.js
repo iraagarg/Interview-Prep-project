@@ -1,148 +1,76 @@
 const Interview = require('../models/Interview');
 const Resume = require('../models/Resume');
-const User = require('../models/User');
+const httpError = require('../utils/httpError');
+const { recalcUserStats } = require('../services/statsService');
 
-// @desc    Create new interview session
-// @route   POST /api/interview
-// @access  Private
+const TYPES = ['technical', 'hr', 'mixed'];
+const DIFFICULTIES = ['easy', 'medium', 'hard'];
+
+// @route POST /api/interview
 const createInterview = async (req, res) => {
-  const { role, type, difficulty, resumeId } = req.body;
+  const { type = 'mixed', difficulty = 'medium', resumeId } = req.body;
+  const role = (req.body.role || req.user.targetRole || 'Software Engineer').toString().trim();
+
+  if (!TYPES.includes(type)) throw httpError(400, `type must be one of: ${TYPES.join(', ')}`);
+  if (!DIFFICULTIES.includes(difficulty)) throw httpError(400, `difficulty must be one of: ${DIFFICULTIES.join(', ')}`);
+
+  // A linked resume must belong to the same user
+  if (resumeId && !(await Resume.exists({ _id: resumeId, user: req.user._id }))) {
+    throw httpError(404, 'Resume not found');
+  }
 
   const interview = await Interview.create({
     user: req.user._id,
     resume: resumeId || null,
-    role: role || req.user.targetRole || 'Software Engineer',
-    type: type || 'mixed',
-    difficulty: difficulty || 'medium',
-    title: `${role || 'Software Engineer'} - ${new Date().toLocaleDateString()}`
+    role,
+    type,
+    difficulty,
+    title: `${role} - ${new Date().toLocaleDateString('en-IN')}`,
   });
 
-  res.status(201).json({
-    success: true,
-    message: 'Interview session created',
-    interview
-  });
+  res.status(201).json({ success: true, message: 'Interview session created', interview });
 };
 
-// @desc    Get all user interviews
-// @route   GET /api/interview
-// @access  Private
+// @route GET /api/interview?page=&limit=
 const getInterviews = async (req, res) => {
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 10;
-  const skip = (page - 1) * limit;
+  const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), 50);
+  const filter = { user: req.user._id };
 
-  const total = await Interview.countDocuments({ user: req.user._id });
-  const interviews = await Interview.find({ user: req.user._id })
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit)
-    .select('-messages');
+  const [total, interviews] = await Promise.all([
+    Interview.countDocuments(filter),
+    Interview.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).select('-messages'),
+  ]);
 
-  res.json({
-    success: true,
-    total,
-    page,
-    pages: Math.ceil(total / limit),
-    interviews
-  });
+  res.json({ success: true, total, page, pages: Math.ceil(total / limit), interviews });
 };
 
-// @desc    Get single interview
-// @route   GET /api/interview/:id
-// @access  Private
+// @route GET /api/interview/:id
 const getInterview = async (req, res) => {
-  const interview = await Interview.findOne({
-    _id: req.params.id,
-    user: req.user._id
-  });
-
-  if (!interview) {
-    const err = new Error('Interview not found');
-    err.statusCode = 404;
-    throw err;
-  }
-
+  const interview = await Interview.findOne({ _id: req.params.id, user: req.user._id });
+  if (!interview) throw httpError(404, 'Interview not found');
   res.json({ success: true, interview });
 };
 
-// @desc    Complete interview & generate feedback
-// @route   PUT /api/interview/:id/complete
-// @access  Private
-const completeInterview = async (req, res) => {
-  const { feedback } = req.body;
+// @route PUT /api/interview/:id/abandon
+// Scores are only ever written by the server (POST /api/chat/end), never accepted from the client.
+const abandonInterview = async (req, res) => {
+  const interview = await Interview.findOne({ _id: req.params.id, user: req.user._id });
+  if (!interview) throw httpError(404, 'Interview not found');
+  if (interview.status !== 'active') throw httpError(400, `Interview is already ${interview.status}`);
 
-  const interview = await Interview.findOne({
-    _id: req.params.id,
-    user: req.user._id
-  });
-
-  if (!interview) {
-    const err = new Error('Interview not found');
-    err.statusCode = 404;
-    throw err;
-  }
-
-  interview.status = 'completed';
+  interview.status = 'abandoned';
   interview.completedAt = new Date();
-  interview.feedback = feedback || interview.feedback;
-
-  // Calculate duration in minutes
-  if (interview.startedAt) {
-    interview.duration = Math.round(
-      (new Date() - new Date(interview.startedAt)) / 60000
-    );
-  }
-
   await interview.save();
-
-  // Update user stats
-  const user = await User.findById(req.user._id);
-  user.totalInterviews += 1;
-
-  // Recalculate average score
-  const completedInterviews = await Interview.find({
-    user: req.user._id,
-    status: 'completed'
-  }).select('feedback.overallScore');
-
-  const totalScore = completedInterviews.reduce(
-    (acc, iv) => acc + (iv.feedback.overallScore || 0),
-    0
-  );
-  user.averageScore = Math.round(totalScore / completedInterviews.length);
-  await user.save();
-
-  res.json({
-    success: true,
-    message: 'Interview completed',
-    interview
-  });
+  res.json({ success: true, message: 'Interview abandoned', interview });
 };
 
-// @desc    Delete interview
-// @route   DELETE /api/interview/:id
-// @access  Private
+// @route DELETE /api/interview/:id
 const deleteInterview = async (req, res) => {
-  const interview = await Interview.findOne({
-    _id: req.params.id,
-    user: req.user._id
-  });
-
-  if (!interview) {
-    const err = new Error('Interview not found');
-    err.statusCode = 404;
-    throw err;
-  }
-
-  await interview.deleteOne();
+  const interview = await Interview.findOneAndDelete({ _id: req.params.id, user: req.user._id });
+  if (!interview) throw httpError(404, 'Interview not found');
+  if (interview.status === 'completed') await recalcUserStats(req.user._id);
   res.json({ success: true, message: 'Interview deleted' });
 };
 
-module.exports = {
-  createInterview,
-  getInterviews,
-  getInterview,
-  completeInterview,
-  deleteInterview
-};
+module.exports = { createInterview, getInterviews, getInterview, abandonInterview, deleteInterview };
