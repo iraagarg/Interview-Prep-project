@@ -1,195 +1,106 @@
 const Interview = require('../models/Interview');
 const Resume = require('../models/Resume');
-const {
-  generateInterviewQuestion,
-  continueInterview,
-  generateFeedback
-} = require('../services/openaiService');
+const httpError = require('../utils/httpError');
+const { recalcUserStats } = require('../services/statsService');
+const { generateInterviewQuestion, continueInterview, generateFeedback } = require('../services/aiService');
 
-// @desc    Start interview - generate first question
-// @route   POST /api/chat/start/:interviewId
-// @access  Private
+const MAX_ANSWER_CHARS = 4000;
+
+const findOwned = async (req) => {
+  const interview = await Interview.findOne({ _id: req.params.interviewId, user: req.user._id });
+  if (!interview) throw httpError(404, 'Interview not found');
+  return interview;
+};
+
+const visible = (messages) => messages.filter((m) => m.role !== 'system');
+const countQuestions = (messages) => messages.filter((m) => m.role === 'assistant').length;
+
+// @route POST /api/chat/start/:interviewId
 const startChat = async (req, res) => {
-  const interview = await Interview.findOne({
-    _id: req.params.interviewId,
-    user: req.user._id
-  });
+  const interview = await findOwned(req);
+  if (interview.status !== 'active') throw httpError(400, `This interview is already ${interview.status}`);
 
-  if (!interview) {
-    const err = new Error('Interview not found');
-    err.statusCode = 404;
-    throw err;
+  // Idempotent: a double click or page refresh must not generate a second opening question
+  const firstQuestion = visible(interview.messages).find((m) => m.role === 'assistant');
+  if (firstQuestion) {
+    return res.json({ success: true, message: firstQuestion.content, questionsAsked: interview.questionsAsked });
   }
 
-  // Get resume text if linked
   let resumeText = '';
   if (interview.resume) {
-    const resume = await Resume.findById(interview.resume);
+    const resume = await Resume.findOne({ _id: interview.resume, user: req.user._id });
     if (resume) resumeText = resume.rawText;
   }
 
-  // Generate first question
-  const firstQuestion = await generateInterviewQuestion(
-    interview.role,
-    interview.type,
-    resumeText,
-    interview.difficulty
-  );
+  const question = await generateInterviewQuestion(interview.role, interview.type, resumeText, interview.difficulty);
 
-  // Save to interview messages
-  const systemMessage = {
-    role: 'system',
-    content: `You are conducting a ${interview.type} interview for ${interview.role} (${interview.difficulty} difficulty).${resumeText ? ` Resume context: ${resumeText.substring(0, 500)}` : ''}`
-  };
-
-  const assistantMessage = {
-    role: 'assistant',
-    content: firstQuestion
-  };
-
-  interview.messages = [systemMessage, assistantMessage];
+  interview.messages = [
+    {
+      role: 'system',
+      content: `${interview.type} interview for ${interview.role} (${interview.difficulty})${resumeText ? ', resume linked' : ''}`,
+    },
+    { role: 'assistant', content: question },
+  ];
   interview.questionsAsked = 1;
+  interview.startedAt = new Date();
   await interview.save();
 
-  res.json({
-    success: true,
-    message: firstQuestion,
-    questionsAsked: interview.questionsAsked
-  });
+  return res.json({ success: true, message: question, questionsAsked: interview.questionsAsked });
 };
 
-// @desc    Send message in interview
-// @route   POST /api/chat/message/:interviewId
-// @access  Private
+// @route POST /api/chat/message/:interviewId
 const sendMessage = async (req, res) => {
-  const { message } = req.body;
+  const message = typeof req.body.message === 'string' ? req.body.message.trim() : '';
+  if (!message) throw httpError(400, 'Message cannot be empty');
+  if (message.length > MAX_ANSWER_CHARS) throw httpError(400, `Answer is too long (max ${MAX_ANSWER_CHARS} characters)`);
 
-  if (!message || !message.trim()) {
-    const err = new Error('Message cannot be empty');
-    err.statusCode = 400;
-    throw err;
-  }
+  const interview = await findOwned(req);
+  if (interview.status !== 'active') throw httpError(400, 'This interview session has already ended');
+  if (!visible(interview.messages).length) throw httpError(400, 'Start the interview before answering');
 
-  const interview = await Interview.findOne({
-    _id: req.params.interviewId,
-    user: req.user._id
-  });
+  interview.messages.push({ role: 'user', content: message });
 
-  if (!interview) {
-    const err = new Error('Interview not found');
-    err.statusCode = 404;
-    throw err;
-  }
-
-  if (interview.status === 'completed') {
-    const err = new Error('This interview session has already ended');
-    err.statusCode = 400;
-    throw err;
-  }
-
-  // Add user message
-  interview.messages.push({
-    role: 'user',
-    content: message.trim()
-  });
-
-  // Get AI response
-  const nonSystemMessages = interview.messages.filter(m => m.role !== 'system');
-  const aiResponse = await continueInterview(
-    nonSystemMessages,
-    interview.role,
-    interview.type,
-    interview.difficulty
-  );
-
-  // Add AI response
-  interview.messages.push({
-    role: 'assistant',
-    content: aiResponse
-  });
-
-  // Count questions (rough estimate)
-  const questionCount = interview.messages.filter(
-    m => m.role === 'assistant' && m.content.includes('?')
-  ).length;
-  interview.questionsAsked = questionCount;
+  const reply = await continueInterview(visible(interview.messages), interview.role, interview.type, interview.difficulty);
+  interview.messages.push({ role: 'assistant', content: reply });
+  interview.questionsAsked = countQuestions(interview.messages); // one question per interviewer turn (enforced by prompt)
 
   await interview.save();
-
-  res.json({
-    success: true,
-    message: aiResponse,
-    questionsAsked: interview.questionsAsked
-  });
+  res.json({ success: true, message: reply, questionsAsked: interview.questionsAsked });
 };
 
-// @desc    End interview and generate feedback
-// @route   POST /api/chat/end/:interviewId
-// @access  Private
+// @route POST /api/chat/end/:interviewId
 const endInterview = async (req, res) => {
-  const interview = await Interview.findOne({
-    _id: req.params.interviewId,
-    user: req.user._id
-  });
+  const interview = await findOwned(req);
 
-  if (!interview) {
-    const err = new Error('Interview not found');
-    err.statusCode = 404;
-    throw err;
+  // Idempotent: ending twice returns the stored feedback instead of paying for a second evaluation
+  if (interview.status === 'completed') {
+    return res.json({ success: true, message: 'Interview already completed', feedback: interview.feedback, interview });
   }
+  if (interview.status === 'abandoned') throw httpError(400, 'This interview was abandoned');
 
-  if (interview.messages.length < 3) {
-    const err = new Error('Interview is too short to generate meaningful feedback');
-    err.statusCode = 400;
-    throw err;
-  }
+  const answers = interview.messages.filter((m) => m.role === 'user').length;
+  if (answers < 1) throw httpError(400, 'Answer at least one question to receive feedback');
 
-  // Generate feedback
-  const feedback = await generateFeedback(
-    interview.messages.filter(m => m.role !== 'system'),
-    interview.role,
-    interview.type
-  );
+  const feedback = await generateFeedback(visible(interview.messages), interview.role, interview.type);
 
   interview.feedback = feedback;
   interview.status = 'completed';
   interview.completedAt = new Date();
-  interview.duration = Math.round(
-    (new Date() - new Date(interview.startedAt)) / 60000
-  );
-
+  interview.duration = Math.max(1, Math.round((interview.completedAt - new Date(interview.startedAt)) / 60000));
   await interview.save();
+  await recalcUserStats(req.user._id);
 
-  res.json({
-    success: true,
-    message: 'Interview completed successfully',
-    feedback,
-    interview
-  });
+  return res.json({ success: true, message: 'Interview completed successfully', feedback, interview });
 };
 
-// @desc    Get interview messages
-// @route   GET /api/chat/messages/:interviewId
-// @access  Private
+// @route GET /api/chat/messages/:interviewId
 const getMessages = async (req, res) => {
-  const interview = await Interview.findOne({
-    _id: req.params.interviewId,
-    user: req.user._id
-  });
-
-  if (!interview) {
-    const err = new Error('Interview not found');
-    err.statusCode = 404;
-    throw err;
-  }
-
-  const messages = interview.messages.filter(m => m.role !== 'system');
-
+  const interview = await findOwned(req);
   res.json({
     success: true,
-    messages,
+    messages: visible(interview.messages),
     status: interview.status,
-    questionsAsked: interview.questionsAsked
+    questionsAsked: interview.questionsAsked,
   });
 };
 
