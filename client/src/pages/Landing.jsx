@@ -1,20 +1,21 @@
 import { Link } from 'react-router-dom';
-import { Brain, Zap, BarChart2, FileText, ChevronRight, Star, Shield, Mic, Target, TrendingUp } from 'lucide-react';
+import { Brain, Zap, BarChart2, FileText, ChevronRight, Shield, Mic, Target, TrendingUp } from 'lucide-react';
 
 const features = [
   { icon: FileText, title: 'Smart Resume Analysis', desc: 'Upload your resume and get AI-powered insights on strengths, weaknesses, and missing skills.', color: '#6c63ff' },
-  { icon: Mic, title: 'Mock AI Interviews', desc: 'Practice with our AI interviewer that adapts to your responses in real-time.', color: '#00d4ff' },
+  { icon: Mic, title: 'Adaptive Mock Interviews', desc: 'Type or speak your answers. The interviewer follows up on what you actually said, grounded in your resume.', color: '#00d4ff' },
   { icon: BarChart2, title: 'Performance Analytics', desc: 'Track your progress with detailed metrics and score trends over time.', color: '#ff6b9d' },
   { icon: Target, title: 'Personalized Insights', desc: 'Get targeted recommendations to improve your weakest interview areas.', color: '#ffab40' },
-  { icon: Shield, title: 'Secure & Private', desc: 'Your data is encrypted and secure. We never share your interview data.', color: '#00e676' },
+  { icon: Shield, title: 'Private by Design', desc: 'Passwords are hashed with bcrypt, every request is token-authenticated, and your sessions are visible only to you.', color: '#00e676' },
   { icon: TrendingUp, title: 'Track Progress', desc: 'Monitor your improvement journey from your first to your latest interview.', color: '#ff5252' },
 ];
 
+// Facts about the product itself (no invented usage numbers)
 const stats = [
-  { value: '10K+', label: 'Practice Sessions' },
-  { value: '95%', label: 'Success Rate' },
-  { value: '50+', label: 'Interview Types' },
-  { value: '4.9★', label: 'User Rating' },
+  { value: '9', label: 'Interview Configurations' },
+  { value: '5', label: 'Scoring Dimensions' },
+  { value: '<1s', label: 'Follow-up Latency' },
+  { value: '24/7', label: 'Free Practice' },
 ];
 
 const Landing = () => {
@@ -31,7 +32,7 @@ const Landing = () => {
         background: 'rgba(10,10,15,0.8)',
         borderBottom: '1px solid var(--color-border)',
       }}>
-        <div style={{
+        <div className="landing-header" style={{
           maxWidth: 1200,
           margin: '0 auto',
           padding: '0 2rem',
@@ -65,10 +66,10 @@ const Landing = () => {
             </span>
           </div>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            <Link to="/login" className="btn-secondary" style={{ padding: '0.6rem 1.25rem', fontSize: '0.9rem' }}>
+            <Link to="/login" className="btn-secondary hide-mobile" style={{ padding: '0.6rem 1.25rem', fontSize: '0.9rem' }}>
               Login
             </Link>
-            <Link to="/register" className="btn-primary" style={{ padding: '0.6rem 1.25rem', fontSize: '0.9rem' }}>
+            <Link to="/register" className="btn-primary" style={{ padding: '0.6rem 1.25rem', fontSize: '0.9rem', whiteSpace: 'nowrap' }}>
               Get Started <ChevronRight size={16} />
             </Link>
           </div>
@@ -155,7 +156,7 @@ const Landing = () => {
 
       {/* Stats */}
       <section style={{ padding: '2rem 0 4rem', borderTop: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)' }}>
-        <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 2rem', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '2rem' }}>
+        <div className="rgrid-2" style={{ maxWidth: 900, margin: '0 auto', padding: '0 2rem', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '2rem' }}>
           {stats.map(stat => (
             <div key={stat.label} style={{ textAlign: 'center' }}>
               <div style={{
@@ -197,7 +198,7 @@ const Landing = () => {
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))', gap: '1.5rem' }}>
             {features.map((feature, i) => {
               const Icon = feature.icon;
               return (
