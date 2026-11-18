@@ -246,20 +246,20 @@ Resume:
 ${resumeText.substring(0, 6000)}
 """
 
-Return exactly this JSON structure:
+Return exactly this JSON structure, replacing every <...> placeholder with your own analysis:
 {
-  "summary": "2-3 sentence professional summary of the candidate",
-  "skills": ["skill1", "skill2", "skill3", "skill4", "skill5"],
-  "experience": ["key experience point 1", "key experience point 2"],
-  "education": ["education detail 1"],
-  "strengths": ["strength 1", "strength 2", "strength 3"],
-  "weaknesses": ["weakness 1", "weakness 2"],
-  "missingSkills": ["missing skill 1", "missing skill 2", "missing skill 3"],
-  "overallScore": 72,
-  "recommendations": ["actionable recommendation 1", "actionable recommendation 2", "actionable recommendation 3"]
+  "summary": "<2-3 sentence professional summary of the candidate>",
+  "skills": ["<skill>", "..."],
+  "experience": ["<key experience point>", "..."],
+  "education": ["<education detail>"],
+  "strengths": ["<strength>", "..."],
+  "weaknesses": ["<weakness>", "..."],
+  "missingSkills": ["<skill commonly expected for their target roles but absent>", "..."],
+  "overallScore": <integer 0-100>,
+  "recommendations": ["<specific change the candidate should make to the resume>", "..."]
 }
 
-overallScore must be a realistic integer from 0 to 100. Base every point on the resume text only.`;
+overallScore guide: 85-100 ready for top-company screening, 70-84 competitive with minor gaps, 50-69 needs clear improvements, below 50 major gaps. Judge evidence of impact (numbers, outcomes), relevance of projects and skills, and clarity. Base every point on the resume text only.`;
     const text = await generate(prompt);
     return { ...normalizeResumeAnalysis(parseJSON(text)), source: 'ai' };
   } catch (err) {
@@ -319,17 +319,21 @@ Transcript:
 ${transcriptOf(messages, 12000)}
 """
 
-Return ONLY this JSON (no markdown, no explanation):
+Scoring guide: 90-100 exceptional, 75-89 strong hire, 60-74 borderline, 40-59 below the bar, 0-39 little or no relevant content. Score each dimension independently from the evidence in the transcript; one-line, vague or off-topic answers must score low.
+
+The feedback is read by the candidate, so write strengths, improvements, summary and recommendations in the second person ("you"), as advice they can act on before their next interview.
+
+Return ONLY this JSON (no markdown, no explanation). Replace every <...> placeholder with your own evaluation:
 {
-  "overallScore": 74,
-  "communication": 78,
-  "technical": 70,
-  "problemSolving": 72,
-  "confidence": 76,
-  "strengths": ["specific strength tied to an actual answer", "...", "..."],
-  "improvements": ["specific gap seen in an actual answer", "..."],
-  "summary": "2-3 sentence personalised assessment based on the actual answers",
-  "recommendations": ["specific, actionable recommendation", "...", "..."]
+  "overallScore": <integer 0-100>,
+  "communication": <integer 0-100>,
+  "technical": <integer 0-100>,
+  "problemSolving": <integer 0-100>,
+  "confidence": <integer 0-100>,
+  "strengths": ["<specific strength tied to an actual answer>", "..."],
+  "improvements": ["<specific gap seen in an actual answer>", "..."],
+  "summary": "<2-3 sentence personalised assessment based on the actual answers>",
+  "recommendations": ["<specific action to practise before the next interview>", "..."]
 }`;
     const text = await generate(prompt);
     return { ...normalizeFeedback(parseJSON(text)), source: 'ai' };
