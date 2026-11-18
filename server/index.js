@@ -1,81 +1,42 @@
-require('express-async-errors');
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
-const mongoose = require('mongoose');
-const path = require('path');
 require('dotenv').config();
+const mongoose = require('mongoose');
+const app = require('./app');
 
-const app = express();
-
-// Security & Middleware
-app.use(helmet());
-app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
-  credentials: true
-}));
-app.use(morgan('dev'));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Static files for uploads
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/resume', require('./routes/resume'));
-app.use('/api/interview', require('./routes/interview'));
-app.use('/api/chat', require('./routes/chat'));
-app.use('/api/analytics', require('./routes/analytics'));
-
-// Health Check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
-});
-
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({ success: false, message: 'Route not found' });
-});
-
-// Global error handler
-app.use((err, req, res, next) => {
-  console.error('Error:', err.message);
-  const statusCode = err.statusCode || 500;
-  res.status(statusCode).json({
-    success: false,
-    message: err.message || 'Internal Server Error',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
-  });
-});
-
-// Connect to MongoDB and start server
 const PORT = process.env.PORT || 5001;
-const MONGODB_URI = process.env.MONGODB_URI;
+const { MONGODB_URI, JWT_SECRET } = process.env;
+
+if (!MONGODB_URI || !JWT_SECRET) {
+  console.error('Missing required environment variables: MONGODB_URI and JWT_SECRET must be set.');
+  process.exit(1);
+}
+if (!process.env.GROQ_API_KEY) {
+  console.warn('GROQ_API_KEY is not set: AI features will use rule-based fallbacks.');
+}
 
 mongoose
   .connect(MONGODB_URI)
   .then(() => {
-    console.log('✅ MongoDB connected successfully');
+    console.log('MongoDB connected');
     const server = app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`📡 Environment: ${process.env.NODE_ENV}`);
+      console.log(`Server running on port ${PORT} (${process.env.NODE_ENV || 'development'})`);
     });
 
     server.on('error', (err) => {
       if (err.code === 'EADDRINUSE') {
-        console.error(`❌ Port ${PORT} is already in use.`);
-        console.error(`   Run this to fix it: lsof -ti:${PORT} | xargs kill -9`);
+        console.error(`Port ${PORT} is already in use.`);
         process.exit(1);
-      } else {
-        throw err;
       }
+      throw err;
     });
+
+    // Graceful shutdown (Render sends SIGTERM on redeploy)
+    const shutdown = () => {
+      server.close(() => mongoose.connection.close(false).then(() => process.exit(0)));
+    };
+    process.on('SIGTERM', shutdown);
+    process.on('SIGINT', shutdown);
   })
   .catch((err) => {
-    console.error('❌ MongoDB connection failed:', err.message);
+    console.error('MongoDB connection failed:', err.message);
     process.exit(1);
   });
-
-module.exports = app;
