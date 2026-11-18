@@ -1,24 +1,31 @@
+import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import Navbar from './components/Navbar';
+import { wakeServer } from './utils/api';
 
 // Pages
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import ResumeUpload from './pages/ResumeUpload';
-import Interview from './pages/Interview';
-import Analytics from './pages/Analytics';
-import History from './pages/History';
-import Profile from './pages/Profile';
+import LoadingSpinner from './components/LoadingSpinner';
+
+// Authenticated pages are code-split: visitors on the landing page don't download charting code
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const ResumeUpload = lazy(() => import('./pages/ResumeUpload'));
+const Interview = lazy(() => import('./pages/Interview'));
+const Analytics = lazy(() => import('./pages/Analytics'));
+const History = lazy(() => import('./pages/History'));
+const Profile = lazy(() => import('./pages/Profile'));
 
 const AppLayout = ({ children }) => (
   <div className="page-layout">
     <Navbar />
-    <main className="main-content">{children}</main>
+    <main className="main-content">
+      <Suspense fallback={<LoadingSpinner message="Loading..." />}>{children}</Suspense>
+    </main>
   </div>
 );
 
@@ -43,7 +50,9 @@ const AppRoutes = () => {
   );
 };
 
-const App = () => (
+const App = () => {
+  useEffect(() => { wakeServer(); }, []);
+  return (
   <BrowserRouter>
     <AuthProvider>
       <AppRoutes />
@@ -63,6 +72,7 @@ const App = () => (
       />
     </AuthProvider>
   </BrowserRouter>
-);
+  );
+};
 
 export default App;
