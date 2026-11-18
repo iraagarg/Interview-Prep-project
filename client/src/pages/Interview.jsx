@@ -1,15 +1,15 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
+import { useSpeechToText, useTextToSpeech } from '../utils/useSpeech';
 import ChatBubble, { TypingIndicator } from '../components/ChatBubble';
 import ScoreCard from '../components/ScoreCard';
 import FeedbackCard from '../components/FeedbackCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 import toast from 'react-hot-toast';
 import {
-  Send, Mic, Square, Settings, ChevronRight, RotateCcw,
-  MessageSquare, Trophy, Briefcase, Brain
+  Send, Mic, MicOff, Square, Volume2, VolumeX, RotateCcw,
+  MessageSquare, Briefcase, Brain, Info
 } from 'lucide-react';
 
 const SETUP_STEP = 'setup';
@@ -18,7 +18,6 @@ const DONE_STEP = 'done';
 
 const Interview = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
 
   const [step, setStep] = useState(SETUP_STEP);
   const [interview, setInterview] = useState(null);
@@ -38,6 +37,26 @@ const Interview = () => {
   });
 
   const messagesEndRef = useRef(null);
+  const [readAloud, setReadAloud] = useState(false);
+  const tts = useTextToSpeech();
+  const stt = useSpeechToText({
+    onText: (text) => setInput((prev) => (prev ? `${prev.trimEnd()} ${text}` : text)),
+  });
+
+  // Read each new interviewer question aloud when voice mode is on
+  const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant')?.content;
+  useEffect(() => {
+    if (readAloud && lastAssistant) tts.speak(lastAssistant);
+  }, [lastAssistant, readAloud]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (stt.error) toast.error(stt.error);
+  }, [stt.error]);
+
+  const toggleReadAloud = () => {
+    if (readAloud) tts.cancel();
+    setReadAloud((v) => !v);
+  };
 
   useEffect(() => {
     api.get('/resume/all').then(r => setResumes(r.data.resumes || [])).catch(() => {});
@@ -72,6 +91,8 @@ const Interview = () => {
 
   const sendMessage = async () => {
     if (!input.trim() || sending || typing) return;
+    if (stt.listening) stt.stop();
+    tts.cancel();
 
     const userMsg = { role: 'user', content: input.trim(), timestamp: new Date() };
     setMessages(prev => [...prev, userMsg]);
@@ -83,7 +104,10 @@ const Interview = () => {
       const res = await api.post(`/chat/message/${interview._id}`, { message: userMsg.content });
       setMessages(prev => [...prev, { role: 'assistant', content: res.data.message, timestamp: new Date() }]);
     } catch (err) {
-      toast.error('Failed to send message');
+      // Roll back so the candidate never loses a typed answer
+      setMessages(prev => prev.filter(m => m !== userMsg));
+      setInput(userMsg.content);
+      toast.error(err.response?.data?.message || 'Failed to send your answer. Please try again.');
     } finally {
       setTyping(false);
       setSending(false);
@@ -95,6 +119,8 @@ const Interview = () => {
       return toast.error('Please answer at least 2 questions before ending');
     }
     setEnding(true);
+    tts.cancel();
+    if (stt.listening) stt.stop();
     try {
       const res = await api.post(`/chat/end/${interview._id}`);
       setFeedback(res.data.feedback);
@@ -142,7 +168,7 @@ const Interview = () => {
             </div>
 
             {/* Type + Difficulty */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="rgrid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>Interview Type</label>
                 <select className="input" value={config.type} onChange={e => setConfig(c => ({ ...c, type: e.target.value }))}>
@@ -213,7 +239,7 @@ const Interview = () => {
   if (step === DONE_STEP) {
     return (
       <div style={{ maxWidth: 900, margin: '0 auto', animation: 'fadeInUp 0.4s ease' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
           <div>
             <h1 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: '1.75rem', marginBottom: '0.25rem' }}>
               🎉 Interview Complete!
@@ -225,7 +251,16 @@ const Interview = () => {
           </button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+        {feedback?.source === 'fallback' && (
+          <div className="card" style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', marginBottom: '1.5rem', borderColor: 'rgba(255,171,64,0.4)' }}>
+            <Info size={18} color="var(--color-warning)" style={{ flexShrink: 0, marginTop: 2 }} />
+            <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
+              The AI evaluator was unavailable, so these scores come from a rule-based estimate of answer depth. Retake the interview later for detailed AI feedback.
+            </p>
+          </div>
+        )}
+
+        <div className="rgrid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
           <ScoreCard feedback={feedback} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <FeedbackCard title="Strengths" items={feedback?.strengths || []} type="success" />
@@ -239,7 +274,7 @@ const Interview = () => {
 
   // ─── CHAT SCREEN ─────────────────────────────────────────────────────────────
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 4rem)', animation: 'fadeIn 0.3s ease' }}>
+    <div className="chat-screen" style={{ display: 'flex', flexDirection: 'column', animation: 'fadeIn 0.3s ease' }}>
       {/* Chat Header */}
       <div style={{
         display: 'flex',
@@ -267,14 +302,28 @@ const Interview = () => {
             </div>
           </div>
         </div>
-        <button
-          className="btn-danger"
-          onClick={endInterview}
-          disabled={ending}
-          style={{ padding: '0.6rem 1.25rem', fontSize: '0.85rem' }}
-        >
-          {ending ? '...' : <><Square size={14} /> End Interview</>}
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          {tts.supported && (
+            <button
+              className="icon-btn"
+              onClick={toggleReadAloud}
+              aria-pressed={readAloud}
+              aria-label={readAloud ? 'Stop reading questions aloud' : 'Read questions aloud'}
+              title={readAloud ? 'Voice on: questions are read aloud' : 'Read questions aloud'}
+              style={readAloud ? { borderColor: 'var(--color-primary)', color: 'var(--color-primary)' } : undefined}
+            >
+              {readAloud ? <Volume2 size={18} /> : <VolumeX size={18} />}
+            </button>
+          )}
+          <button
+            className="btn-danger"
+            onClick={endInterview}
+            disabled={ending}
+            style={{ padding: '0.6rem 1.1rem', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
+          >
+            {ending ? 'Scoring...' : <><Square size={14} /> End</>}
+          </button>
+        </div>
       </div>
 
       {/* Messages */}
@@ -313,21 +362,38 @@ const Interview = () => {
         <textarea
           className="input"
           rows={3}
-          placeholder="Type your answer... (Enter to send, Shift+Enter for new line)"
+          aria-label="Your answer"
+          placeholder={stt.listening ? 'Listening... speak your answer' : stt.supported ? 'Type or tap the mic to speak your answer' : 'Type your answer (Enter to send, Shift+Enter for a new line)'}
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           style={{ resize: 'none', flex: 1, fontFamily: 'Inter, sans-serif', lineHeight: 1.6 }}
           disabled={sending || typing}
         />
-        <button
-          className="btn-primary"
-          onClick={sendMessage}
-          disabled={sending || typing || !input.trim()}
-          style={{ padding: '0.75rem', height: 'fit-content', alignSelf: 'flex-end' }}
-        >
-          <Send size={18} />
-        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          {stt.supported && (
+            <button
+              className="icon-btn"
+              onClick={stt.listening ? stt.stop : stt.start}
+              disabled={sending || typing}
+              aria-pressed={stt.listening}
+              aria-label={stt.listening ? 'Stop voice input' : 'Answer by voice'}
+              title={stt.listening ? 'Stop voice input' : 'Answer by voice'}
+              style={{ width: 46, height: 46, ...(stt.listening ? { background: 'var(--color-error)', borderColor: 'var(--color-error)', color: 'white', animation: 'pulse-glow 1.5s infinite' } : {}) }}
+            >
+              {stt.listening ? <MicOff size={18} /> : <Mic size={18} />}
+            </button>
+          )}
+          <button
+            className="btn-primary"
+            onClick={sendMessage}
+            disabled={sending || typing || !input.trim()}
+            aria-label="Send answer"
+            style={{ padding: '0.75rem', width: 46, height: 46, justifyContent: 'center' }}
+          >
+            <Send size={18} />
+          </button>
+        </div>
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
