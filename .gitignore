@@ -1,3 +1,9 @@
 node_modules/
-.env
 dist/
+coverage/
+.env
+.env.*
+!.env.example
+server/uploads/
+.DS_Store
+*.log
