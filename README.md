@@ -106,7 +106,7 @@ There are **43 automated tests**, run in CI against a real MongoDB on every push
 |---|---|
 | Non-AI endpoints (profile, history, analytics), local | 1 to 4 ms server time |
 | Follow-up question (fast model) | 0.3 to 0.6 s |
-| Final feedback (quality model) | 0.9 to 1.2 s |
+| Final feedback (quality model, JSON mode) | 1.1 s average (0.6 to 3.0 s, 12 runs) |
 | Resume upload, parsing and analysis | about 3 s |
 | Initial JavaScript bundle | 211 kB (64 kB gzipped); charts are lazy-loaded |
 
