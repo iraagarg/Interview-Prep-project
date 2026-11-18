@@ -32,7 +32,8 @@ const resumeSchema = new mongoose.Schema(
       weaknesses: [String],
       missingSkills: [String],
       overallScore: { type: Number, default: 0 },
-      recommendations: [String]
+      recommendations: [String],
+      source: { type: String, enum: ['ai', 'fallback', ''], default: '' }
     },
     isAnalyzed: {
       type: Boolean,
@@ -41,5 +42,7 @@ const resumeSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+resumeSchema.index({ user: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Resume', resumeSchema);
