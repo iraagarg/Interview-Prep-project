@@ -122,7 +122,7 @@ const getSkillAnalytics = async (req, res) => {
 // @route   GET /api/analytics/progress
 // @access  Private
 const getProgress = async (req, res) => {
-  const days = parseInt(req.query.days) || 30;
+  const days = Math.min(Math.max(parseInt(req.query.days, 10) || 30, 1), 365);
   const since = new Date();
   since.setDate(since.getDate() - days);
 

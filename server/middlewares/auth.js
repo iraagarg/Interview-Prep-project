@@ -1,38 +1,24 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const httpError = require('../utils/httpError');
 
+// Verifies the Bearer token and attaches the user (without password) to req.user
 const protect = async (req, res, next) => {
-  let token;
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
 
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith('Bearer ')
-  ) {
-    token = req.headers.authorization.split(' ')[1];
-  }
+  if (!token) return next(httpError(401, 'Not authorized. No token provided.'));
 
-  if (!token) {
-    const err = new Error('Not authorized. No token provided.');
-    err.statusCode = 401;
-    return next(err);
-  }
-
+  let decoded;
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findById(decoded.id).select('-password');
-
-    if (!req.user) {
-      const err = new Error('User not found.');
-      err.statusCode = 401;
-      return next(err);
-    }
-
-    next();
-  } catch (error) {
-    const err = new Error('Not authorized. Invalid token.');
-    err.statusCode = 401;
-    return next(err);
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
+  } catch {
+    return next(httpError(401, 'Not authorized. Invalid or expired token.'));
   }
+
+  req.user = await User.findById(decoded.id).select('-password');
+  if (!req.user) return next(httpError(401, 'User not found.'));
+  return next();
 };
 
 module.exports = { protect };
