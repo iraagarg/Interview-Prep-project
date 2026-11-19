@@ -1,8 +1,9 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const PrivateRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -30,7 +31,8 @@ const PrivateRoute = ({ children }) => {
     );
   }
 
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
+  // Remember where the visitor was going (e.g. a shared /analytics link) and return there after login
+  return isAuthenticated ? children : <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />;
 };
 
 export default PrivateRoute;

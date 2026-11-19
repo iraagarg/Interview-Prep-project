@@ -57,7 +57,8 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !AUTH_FORMS.some((p) => url.includes(p))) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      if (window.location.pathname !== '/login') window.location.href = '/login';
+      const { pathname, search } = window.location;
+      if (pathname !== '/login') window.location.href = `/login?next=${encodeURIComponent(pathname + search)}`;
     }
     if (!error.response) {
       error.response = {

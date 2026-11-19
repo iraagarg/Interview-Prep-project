@@ -20,10 +20,14 @@ export const AuthProvider = ({ children }) => {
           setUser(res.data.user);
           setIsAuthenticated(true);
         })
-        .catch(() => {
-          doLogout();
-          setUserState(null);
-          setIsAuthenticated(false);
+        .catch((err) => {
+          // Only a rejected token ends the session. A timeout or a sleeping server is not a
+          // reason to log someone out: keep the cached user and let the next request retry.
+          if (err.response?.status === 401) {
+            doLogout();
+            setUserState(null);
+            setIsAuthenticated(false);
+          }
         })
         .finally(() => setLoading(false));
     }

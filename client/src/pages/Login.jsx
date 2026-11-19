@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Brain, Mail, Lock, Eye, EyeOff, ChevronRight, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -11,6 +11,10 @@ const Login = () => {
   const [error, setError] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  // Only same-site paths, so ?next= can't be used to send someone to another website
+  const safe = (p) => (typeof p === 'string' && p.startsWith('/') && !p.startsWith('//') ? p : null);
+  const nextPath = safe(location.state?.from) || safe(new URLSearchParams(location.search).get('next')) || '/dashboard';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -19,7 +23,7 @@ const Login = () => {
     try {
       await login(form.email, form.password);
       toast.success('Welcome back!');
-      navigate('/dashboard');
+      navigate(nextPath, { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {
