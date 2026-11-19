@@ -1,12 +1,6 @@
 const Resume = require('../models/Resume');
 const httpError = require('../utils/httpError');
-const {
-  extractTextFromPDF,
-  cleanText,
-  uploadPdfToCloudinary,
-  deleteFromCloudinary,
-  isStorageConfigured,
-} = require('../services/resumeParser');
+const { extractTextFromPDF, cleanText } = require('../services/resumeParser');
 const { analyzeResume } = require('../services/aiService');
 
 const MIN_TEXT_CHARS = 50;
@@ -25,26 +19,18 @@ const uploadResume = async (req, res) => {
     );
   }
 
-  let fileUrl = '';
-  let publicId = '';
-  if (isStorageConfigured()) {
-    const stored = await uploadPdfToCloudinary(req.file.buffer, req.file.originalname);
-    fileUrl = stored.secure_url;
-    publicId = stored.public_id;
-  }
-
+  // Only the extracted text is kept; the uploaded file is discarded with the request
   const analysis = await analyzeResume(rawText);
   const resume = await Resume.create({
     user: req.user._id,
     fileName: req.file.originalname.slice(0, 200),
-    fileUrl: fileUrl || 'not-stored',
-    publicId,
     rawText,
     analysis,
-    isAnalyzed: true,
   });
 
-  res.status(201).json({ success: true, message: 'Resume uploaded and analyzed successfully', resume });
+  const out = resume.toObject();
+  delete out.rawText;
+  res.status(201).json({ success: true, message: 'Resume uploaded and analyzed successfully', resume: out });
 };
 
 // @route GET /api/resume  (latest)
@@ -63,7 +49,6 @@ const getAllResumes = async (req, res) => {
 const deleteResume = async (req, res) => {
   const resume = await Resume.findOneAndDelete({ _id: req.params.id, user: req.user._id });
   if (!resume) throw httpError(404, 'Resume not found');
-  await deleteFromCloudinary(resume.publicId);
   res.json({ success: true, message: 'Resume deleted successfully' });
 };
 
@@ -74,7 +59,6 @@ const reanalyzeResume = async (req, res) => {
   if (!resume.rawText) throw httpError(422, 'This resume has no extractable text. Please upload it again.');
 
   resume.analysis = await analyzeResume(resume.rawText);
-  resume.isAnalyzed = true;
   await resume.save();
 
   const out = resume.toObject();

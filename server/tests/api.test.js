@@ -111,7 +111,10 @@ describe('resume upload', () => {
   test('accepts a text PDF and returns a structured analysis', async () => {
     const res = await request(app).post('/api/resume/upload').set(auth(tokenA)).attach('resume', PDF);
     expect(res.status).toBe(201);
-    expect(res.body.resume.isAnalyzed).toBe(true);
+    expect(res.body.resume.analysis.skills.length).toBeGreaterThan(0);
+    // The PDF is not stored anywhere and the raw text is not echoed back
+    expect(res.body.resume.fileUrl).toBeUndefined();
+    expect(res.body.resume.rawText).toBeUndefined();
     expect(res.body.resume.analysis.skills).toEqual(expect.arrayContaining(['React', 'MongoDB']));
     resumeId = res.body.resume._id;
   });

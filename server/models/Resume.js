@@ -11,14 +11,7 @@ const resumeSchema = new mongoose.Schema(
       type: String,
       required: true
     },
-    fileUrl: {
-      type: String,  // now stores Cloudinary https:// URL instead of local path
-      required: true
-    },
-    publicId: {
-      type: String,  // Cloudinary public ID — used for deletion
-      default: ''
-    },
+    // Extracted text only; the PDF itself is not stored
     rawText: {
       type: String,
       default: ''
@@ -34,10 +27,6 @@ const resumeSchema = new mongoose.Schema(
       overallScore: { type: Number, default: 0 },
       recommendations: [String],
       source: { type: String, enum: ['ai', 'fallback', ''], default: '' }
-    },
-    isAnalyzed: {
-      type: Boolean,
-      default: false
     }
   },
   { timestamps: true }
