@@ -6,6 +6,7 @@ import { ScoreRing } from '../components/ScoreCard';
 import FeedbackCard from '../components/FeedbackCard';
 import { BarChart2, TrendingUp, Target, Zap, RefreshCw } from 'lucide-react';
 import { formatMinutes } from '../utils/format';
+import ErrorState from '../components/ErrorState';
 
 const Analytics = () => {
   const [overview, setOverview] = useState(null);
@@ -13,9 +14,11 @@ const Analytics = () => {
   const [skills, setSkills] = useState(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState(30);
+  const [error, setError] = useState('');
 
   const fetchData = async () => {
     setLoading(true);
+    setError('');
     try {
       const [overviewRes, progressRes, skillsRes] = await Promise.all([
         api.get('/analytics/overview'),
@@ -26,7 +29,7 @@ const Analytics = () => {
       setProgress(progressRes.data.progress || []);
       setSkills(skillsRes.data.analytics);
     } catch (err) {
-      console.error(err);
+      setError(err.response?.data?.message || 'Could not load your analytics.');
     } finally {
       setLoading(false);
     }
@@ -36,6 +39,19 @@ const Analytics = () => {
   useEffect(() => { fetchData(); }, [period]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) return <LoadingSpinner message="Loading analytics..." />;
+
+  if (error) {
+    return (
+      <div style={{ animation: 'fadeIn 0.4s ease' }}>
+        <div className="section-header">
+          <h1 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <BarChart2 size={28} color="var(--color-primary)" /> Analytics
+          </h1>
+        </div>
+        <ErrorState message={error} onRetry={fetchData} />
+      </div>
+    );
+  }
 
   if (!overview?.completedInterviews) {
     return (

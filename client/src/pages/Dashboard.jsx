@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import { Mic, FileText, BarChart2, History, TrendingUp, Award, Clock, CheckCircle, ChevronRight, Sparkles } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { formatMinutes } from '../utils/format';
+import ErrorState from '../components/ErrorState';
 
 const QuickStat = ({ label, value, icon: Icon, color, sub }) => (
   <div className="stat-card" style={{ flex: 1 }}>
@@ -43,24 +44,28 @@ const Dashboard = () => {
   const [recentInterviews, setRecentInterviews] = useState([]);
   const [hasResume, setHasResume] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [overviewRes, interviewsRes, resumeRes] = await Promise.all([
-          api.get('/analytics/overview').catch(() => ({ data: { stats: null } })),
-          api.get('/interview?limit=5').catch(() => ({ data: { interviews: [] } })),
-          api.get('/resume').catch(() => ({ data: { resume: null } })),
-        ]);
-        setStats(overviewRes.data.stats);
-        setRecentInterviews(interviewsRes.data.interviews || []);
-        setHasResume(!!resumeRes.data.resume);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    let failed = false;
+    const soft = (fallback) => () => { failed = true; return { data: fallback }; };
+    try {
+      const [overviewRes, interviewsRes, resumeRes] = await Promise.all([
+        api.get('/analytics/overview').catch(soft({ stats: null })),
+        api.get('/interview?limit=5').catch(soft({ interviews: [] })),
+        api.get('/resume').catch(soft({ resume: null })),
+      ]);
+      setStats(overviewRes.data.stats);
+      setRecentInterviews(interviewsRes.data.interviews || []);
+      setHasResume(!!resumeRes.data.resume);
+    } finally {
+      setLoadError(failed);
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   if (loading) return <LoadingSpinner message="Loading dashboard..." />;
 
@@ -88,6 +93,10 @@ const Dashboard = () => {
           {user?.targetRole ? `Preparing for ${user.targetRole}` : 'Ready to practice your interview skills?'}
         </p>
       </div>
+
+      {loadError && (
+        <ErrorState compact message="Some of your data could not be loaded, so the numbers below may be incomplete." onRetry={fetchData} />
+      )}
 
       {/* Stats Row */}
       <div className="stat-grid" style={{ marginBottom: '2rem' }}>
