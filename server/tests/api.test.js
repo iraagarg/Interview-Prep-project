@@ -293,3 +293,18 @@ describe('input validation', () => {
     expect(res.body.interview.role).toBe('Backend Developer');
   });
 });
+
+describe('password change', () => {
+  test('tokens issued before a password change stop working; the new token works', async () => {
+    const reg = await request(app).post('/api/auth/register').send({ name: 'Meera', email: 'meera@example.com', password: 'secret123' });
+    const oldToken = reg.body.token;
+    await new Promise((r) => setTimeout(r, 1500)); // JWT iat has 1-second resolution
+    const res = await request(app).put('/api/auth/password').set(auth(oldToken)).send({ currentPassword: 'secret123', newPassword: 'secret456' });
+    expect(res.status).toBe(200);
+    expect(res.body.token).toBeTruthy();
+    expect((await request(app).get('/api/auth/me').set(auth(oldToken))).status).toBe(401);
+    const me = await request(app).get('/api/auth/me').set(auth(res.body.token));
+    expect(me.status).toBe(200);
+    expect(me.body.user.passwordChangedAt).toBeUndefined();
+  });
+});

@@ -86,7 +86,8 @@ const changePassword = async (req, res) => {
 
   user.password = newPassword;
   await user.save();
-  res.json({ success: true, message: 'Password changed successfully' });
+  // Older tokens (other devices, a stolen token) stop working; this session gets a fresh one
+  res.json({ success: true, message: 'Password changed successfully', token: generateToken(user._id) });
 };
 
 module.exports = { register, login, getMe, updateProfile, changePassword };

@@ -23,6 +23,11 @@ const userSchema = new mongoose.Schema(
       minlength: [6, 'Password must be at least 6 characters'],
       select: false
     },
+    // Tokens issued before this moment are rejected (set when the password changes)
+    passwordChangedAt: {
+      type: Date,
+      select: false
+    },
     avatar: {
       type: String,
       default: null
@@ -54,6 +59,8 @@ const userSchema = new mongoose.Schema(
 // Hash password before saving
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
+  // JWT iat has 1-second resolution: back-date slightly so the token issued right after still counts
+  if (!this.isNew) this.passwordChangedAt = new Date(Date.now() - 1000);
   const salt = await bcrypt.genSalt(12);
   this.password = await bcrypt.hash(this.password, salt);
   next();

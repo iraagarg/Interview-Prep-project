@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
+import { setToken } from '../utils/auth';
 import { User, Mail, Briefcase, Award, Save, Lock, Plus, X, Tag } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -52,10 +53,12 @@ const Profile = () => {
     }
     setSavingPassword(true);
     try {
-      await api.put('/auth/password', {
+      const res = await api.put('/auth/password', {
         currentPassword: passwordForm.currentPassword,
         newPassword: passwordForm.newPassword,
       });
+      // The server invalidates older tokens on a password change; keep this session signed in
+      if (res.data.token) setToken(res.data.token);
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
       toast.success('Password changed!');
     } catch (err) {
