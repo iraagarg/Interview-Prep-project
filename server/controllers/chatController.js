@@ -132,7 +132,10 @@ const endInterview = async (req, res) => {
 
   let feedback;
   try {
-    feedback = await generateFeedback(visible(claimed.messages), claimed.role, claimed.type);
+    feedback = await generateFeedback(visible(claimed.messages), claimed.role, claimed.type, {
+      difficulty: claimed.difficulty,
+      experience: req.user.experience,
+    });
   } catch (err) {
     await Interview.updateOne({ _id: claimed._id, status: 'scoring' }, { $set: { status: 'active' } });
     throw err;

@@ -335,9 +335,18 @@ RULES:
   }
 };
 
-const generateFeedback = async (messages, role, type) => {
+const EXPERIENCE_LABEL = {
+  fresher: 'a student or fresher applying for an internship or entry-level role',
+  '1-2 years': 'a candidate with 1-2 years of experience',
+  '3-5 years': 'a candidate with 3-5 years of experience',
+  '5+ years': 'a senior candidate with 5+ years of experience',
+};
+
+const generateFeedback = async (messages, role, type, { difficulty = 'medium', experience = 'fresher' } = {}) => {
   try {
-    const system = `You are an expert technical recruiter who just conducted a ${type} interview for the role of ${role}.
+    const level = EXPERIENCE_LABEL[experience] || EXPERIENCE_LABEL.fresher;
+    const system = `You are an expert technical recruiter who just conducted a ${type} interview for the role of ${role} at ${difficulty} difficulty.
+The candidate is ${level}. Judge the answers against what a strong candidate at that level is expected to show, not against a senior engineer (unless the candidate is senior).
 
 Evaluate the candidate using this rubric (each score is an integer 0-100):
 - communication: clarity, structure (e.g. STAR), conciseness
