@@ -166,17 +166,17 @@ const Analytics = () => {
         </div>
       </div>
 
-      {/* Strengths & Improvements */}
+      {/* Strengths & Improvements (older API versions used top* field names) */}
       {skills && (
         <div className="rgrid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
           <FeedbackCard
             title="Recent Strengths"
-            items={skills.recentStrengths.map(s => s.text)}
+            items={(skills.recentStrengths || skills.topStrengths || []).map(s => s.text)}
             type="success"
           />
           <FeedbackCard
             title="Recent Improvement Areas"
-            items={skills.recentImprovements.map(s => s.text)}
+            items={(skills.recentImprovements || skills.topImprovements || []).map(s => s.text)}
             type="warning"
           />
         </div>
