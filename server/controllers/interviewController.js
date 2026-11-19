@@ -9,7 +9,9 @@ const DIFFICULTIES = ['easy', 'medium', 'hard'];
 // @route POST /api/interview
 const createInterview = async (req, res) => {
   const { type = 'mixed', difficulty = 'medium', resumeId } = req.body;
-  const role = (req.body.role || req.user.targetRole || 'Software Engineer').toString().trim();
+  // Trim before falling back, so a blank role uses the profile's target role instead of ''
+  const given = typeof req.body.role === 'string' ? req.body.role.trim() : '';
+  const role = given || (req.user.targetRole || '').trim() || 'Software Engineer';
 
   if (!TYPES.includes(type)) throw httpError(400, `type must be one of: ${TYPES.join(', ')}`);
   if (!DIFFICULTIES.includes(difficulty)) throw httpError(400, `difficulty must be one of: ${DIFFICULTIES.join(', ')}`);

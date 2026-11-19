@@ -273,3 +273,23 @@ describe('error mapping', () => {
     expect([400, 409]).toContain(codes[1]);
   });
 });
+
+describe('input validation', () => {
+  test('non-string passwords are rejected with 400, never 500', async () => {
+    expect((await request(app).post('/api/auth/login').send({ email: 'asha@example.com', password: 123456 })).status).toBe(400);
+    expect((await request(app).post('/api/auth/login').send({ email: 'asha@example.com', password: {} })).status).toBe(400);
+    expect((await request(app).post('/api/auth/register').send({ name: 'X', email: 'x@example.com', password: ['secret123'] })).status).toBe(400);
+  });
+
+  test('profile fields are bounded', async () => {
+    expect((await request(app).put('/api/auth/profile').set(auth(tokenA)).send({ targetRole: 'x'.repeat(81) })).status).toBe(400);
+    expect((await request(app).put('/api/auth/profile').set(auth(tokenA)).send({ skills: Array.from({ length: 31 }, (_, i) => `s${i}`) })).status).toBe(400);
+    expect((await request(app).put('/api/auth/profile').set(auth(tokenA)).send({ skills: ['x'.repeat(41)] })).status).toBe(400);
+  });
+
+  test('a blank role falls back to the profile target role', async () => {
+    const res = await request(app).post('/api/interview').set(auth(tokenA)).send({ role: '   ' });
+    expect(res.status).toBe(201);
+    expect(res.body.interview.role).toBe('Backend Developer');
+  });
+});

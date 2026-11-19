@@ -29,7 +29,9 @@ const userSchema = new mongoose.Schema(
     },
     targetRole: {
       type: String,
-      default: ''
+      default: '',
+      trim: true,
+      maxlength: [80, 'Target role cannot exceed 80 characters']
     },
     experience: {
       type: String,
