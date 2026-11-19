@@ -70,10 +70,11 @@ export const SkillsRadar = ({ averageScores }) => {
   return (
     <ResponsiveContainer width="100%" height={280}>
       {/* A smaller radius leaves room for the axis labels on narrow cards */}
-      <RadarChart data={data} outerRadius="62%" margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
+      <RadarChart data={data} outerRadius="60%" margin={{ top: 10, right: 44, bottom: 10, left: 44 }}>
         <PolarGrid stroke="var(--color-border)" />
         <PolarAngleAxis dataKey="skill" tick={{ fill: 'var(--color-text-muted)', fontSize: 11 }} />
-        <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: 'var(--color-text-muted)', fontSize: 11 }} />
+        {/* Exact values are shown in the score rings above; scale numbers here only overlapped labels */}
+        <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
         <Radar
           name="Score"
           dataKey="value"
