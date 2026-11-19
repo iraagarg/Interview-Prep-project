@@ -69,9 +69,10 @@ export const SkillsRadar = ({ averageScores }) => {
 
   return (
     <ResponsiveContainer width="100%" height={280}>
-      <RadarChart data={data}>
+      {/* A smaller radius leaves room for the axis labels on narrow cards */}
+      <RadarChart data={data} outerRadius="62%" margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
         <PolarGrid stroke="var(--color-border)" />
-        <PolarAngleAxis dataKey="skill" tick={{ fill: 'var(--color-text-muted)', fontSize: 12 }} />
+        <PolarAngleAxis dataKey="skill" tick={{ fill: 'var(--color-text-muted)', fontSize: 11 }} />
         <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: 'var(--color-text-muted)', fontSize: 11 }} />
         <Radar
           name="Score"
