@@ -28,10 +28,6 @@ const userSchema = new mongoose.Schema(
       type: Date,
       select: false
     },
-    avatar: {
-      type: String,
-      default: null
-    },
     targetRole: {
       type: String,
       default: '',

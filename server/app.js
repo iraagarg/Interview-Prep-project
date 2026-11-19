@@ -25,7 +25,6 @@ app.use(
       if (!origin || allowedOrigins.includes(origin.replace(/\/$/, ''))) return cb(null, true);
       return cb(null, false);
     },
-    credentials: true,
   })
 );
 if (process.env.NODE_ENV !== 'test') app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
