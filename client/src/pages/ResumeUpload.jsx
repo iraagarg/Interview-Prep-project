@@ -55,6 +55,8 @@ const ResumeUpload = () => {
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
+    // Clear the input so choosing the same file again (e.g. after a failed upload) still fires
+    e.target.value = '';
     if (file) uploadFile(file);
   };
 
@@ -106,7 +108,11 @@ const ResumeUpload = () => {
       {/* Upload Zone */}
       {!resume && (
         <div
+          role="button"
+          tabIndex={0}
+          aria-label="Upload your resume as a PDF"
           onClick={() => fileRef.current?.click()}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileRef.current?.click(); } }}
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
@@ -159,11 +165,11 @@ const ResumeUpload = () => {
 
       {/* Resume Actions */}
       {resume && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.5rem' }}>
           <h2 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: '1.2rem' }}>
             Analysis Results
           </h2>
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
             <button
               className="btn-secondary"
               onClick={() => fileRef.current?.click()}

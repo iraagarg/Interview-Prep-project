@@ -419,6 +419,8 @@ select.input {
   .rgrid { grid-template-columns: 1fr !important; }
   .rgrid-2 { grid-template-columns: repeat(2, 1fr) !important; row-gap: 1.5rem !important; }
   .hide-mobile { display: none !important; }
+  /* iOS Safari zooms into any focused field under 16px and stays zoomed */
+  .input, input, select, textarea { font-size: 16px; }
 }
 
 /* Interview chat fills the viewport below the (mobile) top bar */

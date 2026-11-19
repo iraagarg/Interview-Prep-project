@@ -108,7 +108,7 @@ const Profile = () => {
         <div style={{ minWidth: 0 }}>
           <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: '1.3rem', marginBottom: '0.25rem', overflowWrap: 'anywhere' }}>{user?.name}</div>
           <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', marginBottom: '0.5rem', overflowWrap: 'anywhere' }}>{user?.email}</div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             {user?.totalInterviews > 0 && (
               <span className="badge badge-primary">
                 <Award size={11} /> {user.totalInterviews} interviews
