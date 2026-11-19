@@ -16,17 +16,20 @@ const Groq = require('groq-sdk');
 
 const MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-120b'; // quality: analysis + feedback
 const FAST_MODEL = process.env.GROQ_FAST_MODEL || 'openai/gpt-oss-20b'; // speed: interview turns
-const TIMEOUT_MS = Number(process.env.AI_TIMEOUT_MS) || 25000;
+// Per-call limit, and an overall budget for scoring (attempt + retry). Both stay well under the
+// client's 75 s timeout, so the browser never gives up while the server is still working.
+const TIMEOUT_MS = Number(process.env.AI_TIMEOUT_MS) || 20000;
+const JSON_BUDGET_MS = 45000;
 
 let cachedClient;
 const getClient = () => {
   const key = process.env.GROQ_API_KEY;
   if (!key || key.length < 10) return null;
-  if (!cachedClient) cachedClient = new Groq({ apiKey: key, timeout: TIMEOUT_MS, maxRetries: 1 });
+  if (!cachedClient) cachedClient = new Groq({ apiKey: key, timeout: TIMEOUT_MS, maxRetries: 0 });
   return cachedClient;
 };
 
-const generate = async (prompt, { fast = false, maxTokens = 1024, json = false } = {}) => {
+const generate = async (prompt, { fast = false, maxTokens = 1024, json = false, timeout = TIMEOUT_MS } = {}) => {
   const client = getClient();
   if (!client) throw new Error('NO_API_KEY');
   const model = fast ? FAST_MODEL : MODEL;
@@ -46,7 +49,7 @@ const generate = async (prompt, { fast = false, maxTokens = 1024, json = false }
     params.max_tokens = maxTokens * 2;
   }
 
-  const completion = await client.chat.completions.create(params);
+  const completion = await client.chat.completions.create(params, { timeout });
   const text = completion.choices?.[0]?.message?.content?.trim() || '';
   if (!text) throw new Error('EMPTY_RESPONSE');
   return text;
@@ -75,10 +78,13 @@ const missingScores = (raw, keys) => keys.filter((k) => !isNumeric(raw?.[k]));
 
 // JSON-mode call + parse + score validation, retried once before the caller falls back.
 const generateJSON = async (prompt, scoreKeys = [], attempts = 2) => {
+  const deadline = Date.now() + JSON_BUDGET_MS;
   let lastErr;
   for (let i = 0; i < attempts; i++) {
+    const remaining = deadline - Date.now();
+    if (remaining < 5000) break; // not enough time left for a useful attempt
     try {
-      const raw = parseJSON(await generate(prompt, { json: true }));
+      const raw = parseJSON(await generate(prompt, { json: true, timeout: Math.min(TIMEOUT_MS, remaining) }));
       const bad = missingScores(raw, scoreKeys);
       if (bad.length) throw new Error(`Non-numeric score fields: ${bad.join(', ')}`);
       return raw;
