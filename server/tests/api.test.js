@@ -314,3 +314,14 @@ describe('password change', () => {
     expect(me.body.user.passwordChangedAt).toBeUndefined();
   });
 });
+
+describe('history filter', () => {
+  test('status filter is applied on the server across all pages', async () => {
+    const all = await request(app).get('/api/interview?limit=50').set(auth(tokenA));
+    const done = await request(app).get('/api/interview?limit=50&status=completed').set(auth(tokenA));
+    expect(done.body.interviews.every((i) => i.status === 'completed')).toBe(true);
+    expect(done.body.total).toBe(all.body.interviews.filter((i) => i.status === 'completed').length);
+    const bogus = await request(app).get('/api/interview?status[$ne]=x').set(auth(tokenA));
+    expect(bogus.status).toBe(200); // object values are ignored, never passed to the query
+  });
+});

@@ -4,10 +4,10 @@ import api from '../utils/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ScoreCard from '../components/ScoreCard';
 import FeedbackCard from '../components/FeedbackCard';
-import { History as HistoryIcon, ChevronDown, ChevronUp, Trash2, Clock, MessageSquare, CheckCircle, XCircle, Activity } from 'lucide-react';
+import { History as HistoryIcon, ChevronDown, ChevronUp, Trash2, Clock, MessageSquare, CheckCircle, XCircle, Activity, Play } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const statusBadge = { completed: 'badge-success', active: 'badge-primary', abandoned: 'badge-error' };
+const statusBadge = { completed: 'badge-success', active: 'badge-primary', scoring: 'badge-primary', abandoned: 'badge-error' };
 const statusIcon = { completed: CheckCircle, active: Activity, abandoned: XCircle };
 
 const InterviewCard = ({ interview, onDelete }) => {
@@ -64,7 +64,19 @@ const InterviewCard = ({ interview, onDelete }) => {
               {interview.feedback.overallScore}
             </div>
           )}
+          {(interview.status === 'active' || interview.status === 'scoring') && (
+            <Link
+              to={`/interview?id=${interview._id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="btn-primary"
+              style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
+            >
+              <Play size={13} /> Continue
+            </Link>
+          )}
           <button
+            aria-label="Delete interview"
+            title="Delete interview"
             onClick={(e) => { e.stopPropagation(); onDelete(interview._id); }}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '0.25rem', borderRadius: 6, transition: 'color 0.2s' }}
             onMouseEnter={e => e.currentTarget.style.color = 'var(--color-error)'}
@@ -72,7 +84,14 @@ const InterviewCard = ({ interview, onDelete }) => {
           >
             <Trash2 size={16} />
           </button>
-          {expanded ? <ChevronUp size={18} color="var(--color-text-muted)" /> : <ChevronDown size={18} color="var(--color-text-muted)" />}
+          <button
+            onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
+            aria-expanded={expanded}
+            aria-label={expanded ? 'Hide details' : 'Show details'}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', display: 'flex' }}
+          >
+            {expanded ? <ChevronUp size={18} color="var(--color-text-muted)" /> : <ChevronDown size={18} color="var(--color-text-muted)" />}
+          </button>
         </div>
       </div>
 
@@ -103,10 +122,11 @@ const History = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [filter, setFilter] = useState('all');
 
-  const fetchInterviews = async (p = 1) => {
+  const fetchInterviews = async (p = 1, status = filter) => {
     setLoading(true);
     try {
-      const res = await api.get(`/interview?page=${p}&limit=10`);
+      const query = status === 'all' ? '' : `&status=${status}`;
+      const res = await api.get(`/interview?page=${p}&limit=10${query}`);
       setInterviews(res.data.interviews || []);
       setTotalPages(res.data.pages || 1);
     } catch {
@@ -116,35 +136,40 @@ const History = () => {
     }
   };
 
-  useEffect(() => { fetchInterviews(page); }, [page]);
+  useEffect(() => { fetchInterviews(page, filter); }, [page, filter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this interview session?')) return;
     try {
       await api.delete(`/interview/${id}`);
-      setInterviews(iv => iv.filter(i => i._id !== id));
       toast.success('Interview deleted');
+      // Refetch so pagination stays correct; step back if this emptied the last page
+      const nextPage = interviews.length === 1 && page > 1 ? page - 1 : page;
+      if (nextPage !== page) setPage(nextPage);
+      else fetchInterviews(page, filter);
     } catch {
       toast.error('Failed to delete');
     }
   };
 
-  const filtered = filter === 'all' ? interviews : interviews.filter(iv => iv.status === filter);
+  const filtered = interviews;
+  const changeFilter = (f) => { setFilter(f); setPage(1); };
 
   return (
     <div style={{ animation: 'fadeIn 0.4s ease' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
         <div className="section-header" style={{ marginBottom: 0 }}>
           <h1 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <HistoryIcon size={28} color="var(--color-primary)" /> Interview History
           </h1>
           <p className="section-subtitle">Review all your past interview sessions</p>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }} role="group" aria-label="Filter by status">
           {['all', 'completed', 'active', 'abandoned'].map(f => (
             <button
               key={f}
-              onClick={() => setFilter(f)}
+              aria-pressed={filter === f}
+              onClick={() => changeFilter(f)}
               style={{
                 padding: '0.5rem 0.9rem',
                 borderRadius: 8,

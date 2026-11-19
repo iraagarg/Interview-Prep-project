@@ -33,11 +33,15 @@ const createInterview = async (req, res) => {
   res.status(201).json({ success: true, message: 'Interview session created', interview });
 };
 
-// @route GET /api/interview?page=&limit=
+const STATUSES = ['active', 'scoring', 'completed', 'abandoned'];
+
+// @route GET /api/interview?page=&limit=&status=
 const getInterviews = async (req, res) => {
   const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
   const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), 50);
   const filter = { user: req.user._id };
+  // Filtering happens here, not in the browser, so it covers every page of results
+  if (typeof req.query.status === 'string' && STATUSES.includes(req.query.status)) filter.status = req.query.status;
 
   const [total, interviews] = await Promise.all([
     Interview.countDocuments(filter),
