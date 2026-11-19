@@ -236,3 +236,25 @@ describe('history and analytics', () => {
     expect(me.body.user.totalInterviews).toBe(0);
   });
 });
+
+describe('concurrent requests', () => {
+  let id;
+  test('simultaneous starts store exactly one opening question', async () => {
+    const iv = await request(app).post('/api/interview').set(auth(tokenA)).send({ role: 'SDE' });
+    id = iv.body.interview._id;
+    const results = await Promise.all([1, 2, 3].map(() => request(app).post(`/api/chat/start/${id}`).set(auth(tokenA))));
+    expect(results.map((r) => r.status)).toEqual([200, 200, 200]);
+    const msgs = await request(app).get(`/api/chat/messages/${id}`).set(auth(tokenA));
+    expect(msgs.body.messages.filter((m) => m.role === 'assistant')).toHaveLength(1);
+  });
+
+  test('simultaneous ends evaluate the session once and never return 500', async () => {
+    await request(app).post(`/api/chat/message/${id}`).set(auth(tokenA)).send({ message: 'I built a REST API with Express and MongoDB.' });
+    const results = await Promise.all([1, 2].map(() => request(app).post(`/api/chat/end/${id}`).set(auth(tokenA))));
+    results.forEach((r) => expect([200, 409]).toContain(r.status));
+    expect(results.some((r) => r.status === 200)).toBe(true);
+    const iv = await request(app).get(`/api/interview/${id}`).set(auth(tokenA));
+    expect(iv.body.interview.status).toBe('completed');
+    expect((await request(app).post(`/api/chat/message/${id}`).set(auth(tokenA)).send({ message: 'late' })).status).toBe(400);
+  });
+});

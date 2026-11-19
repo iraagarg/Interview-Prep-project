@@ -50,7 +50,8 @@ const interviewSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['active', 'completed', 'abandoned'],
+      // 'scoring' is a short-lived claim while the final evaluation runs
+      enum: ['active', 'scoring', 'completed', 'abandoned'],
       default: 'active'
     },
     messages: [messageSchema],
