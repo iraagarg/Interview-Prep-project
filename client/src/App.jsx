@@ -11,6 +11,7 @@ import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import LoadingSpinner from './components/LoadingSpinner';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Authenticated pages are code-split: visitors on the landing page don't download charting code
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -24,7 +25,9 @@ const AppLayout = ({ children }) => (
   <div className="page-layout">
     <Navbar />
     <main className="main-content">
-      <Suspense fallback={<LoadingSpinner message="Loading..." />}>{children}</Suspense>
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingSpinner message="Loading..." />}>{children}</Suspense>
+      </ErrorBoundary>
     </main>
   </div>
 );
@@ -51,11 +54,17 @@ const AppRoutes = () => {
 };
 
 const App = () => {
-  useEffect(() => { wakeServer(); }, []);
+  useEffect(() => {
+    wakeServer();
+    // The app loaded fine, so a future stale-chunk error may trigger one automatic reload again
+    sessionStorage.removeItem('chunk-reloaded');
+  }, []);
   return (
   <BrowserRouter>
     <AuthProvider>
-      <AppRoutes />
+      <ErrorBoundary>
+        <AppRoutes />
+      </ErrorBoundary>
       <Toaster
         position="top-right"
         toastOptions={{
