@@ -65,8 +65,16 @@ app.use((err, req, res, next) => {
     statusCode = 400;
     message = err.code === 'LIMIT_FILE_SIZE' ? 'File too large. Maximum size is 5 MB.' : err.message;
   } else if (err.name === 'CastError') {
-    statusCode = 404;
-    message = 'Resource not found';
+    // A malformed id in the URL is "not found"; a wrongly typed body field is a bad request
+    const isId = err.kind === 'ObjectId' && (err.path === '_id' || /(^|\.)_?id$/i.test(err.path || ''));
+    statusCode = isId ? 404 : 400;
+    message = isId ? 'Resource not found' : `Invalid value for ${err.path}`;
+  } else if (err.code === 11000) {
+    statusCode = 409;
+    message = 'An account with this email already exists';
+  } else if (err.name === 'VersionError') {
+    statusCode = 409;
+    message = 'This record was changed by another request. Please retry.';
   } else if (err.name === 'ValidationError') {
     statusCode = 400;
     message = Object.values(err.errors).map((e) => e.message).join(', ');

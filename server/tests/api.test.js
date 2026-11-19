@@ -258,3 +258,18 @@ describe('concurrent requests', () => {
     expect((await request(app).post(`/api/chat/message/${id}`).set(auth(tokenA)).send({ message: 'late' })).status).toBe(400);
   });
 });
+
+describe('error mapping', () => {
+  test('wrongly typed body fields are 400, not 404 or 500', async () => {
+    const res = await request(app).put('/api/auth/profile').set(auth(tokenA)).send({ skills: [{ a: 1 }] });
+    expect(res.status).toBe(400);
+  });
+
+  test('simultaneous registrations with one email: one 201, one 400/409, no 500', async () => {
+    const body = { name: 'Ravi', email: 'race@example.com', password: 'secret123' };
+    const results = await Promise.all([1, 2].map(() => request(app).post('/api/auth/register').send(body)));
+    const codes = results.map((r) => r.status).sort();
+    expect(codes[0]).toBe(201);
+    expect([400, 409]).toContain(codes[1]);
+  });
+});
