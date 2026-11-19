@@ -14,7 +14,7 @@ const features = [
 const stats = [
   { value: '9', label: 'Interview Configurations' },
   { value: '5', label: 'Scoring Dimensions' },
-  { value: '<1s', label: 'Follow-up Latency' },
+  { value: '1', label: 'Follow-up After Every Answer' },
   { value: '24/7', label: 'Free Practice' },
 ];
 
@@ -242,7 +242,7 @@ const Landing = () => {
           Ready to Land Your Dream Job?
         </h2>
         <p style={{ color: 'var(--color-text-muted)', fontSize: '1.1rem', marginBottom: '2.5rem' }}>
-          Join thousands of successful candidates who mastered interviews with AI
+          Run a full mock interview in under ten minutes and see exactly what to improve next
         </p>
         <Link to="/register" className="btn-primary" style={{ fontSize: '1.1rem', padding: '1rem 3rem' }}>
           Start Practicing Now — It's Free <ChevronRight size={20} />
@@ -261,7 +261,12 @@ const Landing = () => {
           <Brain size={16} color="var(--color-primary)" />
           <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, color: 'var(--color-primary)' }}>InterviewAI</span>
         </div>
-        <p>© 2024 InterviewAI. Built to help you succeed.</p>
+        <p>
+          © {new Date().getFullYear()} InterviewAI ·{' '}
+          <a href="https://github.com/iraagarg/Interview-Prep-project" target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
+            Source on GitHub
+          </a>
+        </p>
       </footer>
     </div>
   );
