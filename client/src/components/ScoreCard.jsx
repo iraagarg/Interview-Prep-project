@@ -1,3 +1,5 @@
+import { CheckCircle2, Lightbulb } from 'lucide-react';
+
 const ScoreRing = ({ score, size = 90, strokeWidth = 8, label }) => {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -110,8 +112,8 @@ const ScoreCard = ({ feedback, showLists = true }) => {
       <div className="rgrid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
         {feedback.strengths?.length > 0 && (
           <div>
-            <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-success)', marginBottom: '0.5rem' }}>
-              ✅ Strengths
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-success)', marginBottom: '0.5rem' }}>
+              <CheckCircle2 size={15} aria-hidden="true" /> Strengths
             </h4>
             {feedback.strengths.map((s, i) => (
               <div key={i} style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', padding: '0.3rem 0', borderBottom: '1px solid var(--color-border)' }}>
@@ -122,8 +124,8 @@ const ScoreCard = ({ feedback, showLists = true }) => {
         )}
         {feedback.improvements?.length > 0 && (
           <div>
-            <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-warning)', marginBottom: '0.5rem' }}>
-              💡 Improve
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-warning)', marginBottom: '0.5rem' }}>
+              <Lightbulb size={15} aria-hidden="true" /> Improve
             </h4>
             {feedback.improvements.map((im, i) => (
               <div key={i} style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', padding: '0.3rem 0', borderBottom: '1px solid var(--color-border)' }}>

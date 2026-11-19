@@ -1,4 +1,4 @@
-import { CheckCircle, Star, BookOpen, TrendingUp, FileText } from 'lucide-react';
+import { CheckCircle, CheckCircle2, AlertTriangle, Star, BookOpen, TrendingUp, FileText } from 'lucide-react';
 
 const ResumeAnalysis = ({ resume }) => {
   if (!resume) return null;
@@ -81,8 +81,8 @@ const ResumeAnalysis = ({ resume }) => {
         {/* Strengths */}
         {analysis?.strengths?.length > 0 && (
           <div className="card">
-            <h4 style={{ fontWeight: 600, marginBottom: '0.75rem', color: 'var(--color-success)', fontSize: '0.9rem' }}>
-              ✅ Strengths
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600, marginBottom: '0.75rem', color: 'var(--color-success)', fontSize: '0.9rem' }}>
+              <CheckCircle2 size={16} aria-hidden="true" /> Strengths
             </h4>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
               {analysis.strengths.map((s, i) => (
@@ -97,8 +97,8 @@ const ResumeAnalysis = ({ resume }) => {
         {/* Weaknesses */}
         {analysis?.weaknesses?.length > 0 && (
           <div className="card">
-            <h4 style={{ fontWeight: 600, marginBottom: '0.75rem', color: 'var(--color-error)', fontSize: '0.9rem' }}>
-              ⚠️ Weaknesses
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600, marginBottom: '0.75rem', color: 'var(--color-error)', fontSize: '0.9rem' }}>
+              <AlertTriangle size={16} aria-hidden="true" /> Weaknesses
             </h4>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
               {analysis.weaknesses.map((w, i) => (

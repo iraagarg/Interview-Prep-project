@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
-import { Mic, FileText, BarChart2, History, TrendingUp, Award, Clock, CheckCircle, ChevronRight, Sparkles } from 'lucide-react';
+import { Mic, FileText, BarChart2, History, TrendingUp, Award, Clock, CheckCircle, ChevronRight, Sparkles, Target, Lightbulb, Zap } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { formatMinutes } from '../utils/format';
 import ErrorState from '../components/ErrorState';
@@ -69,6 +69,23 @@ const Dashboard = () => {
 
   if (loading) return <LoadingSpinner message="Loading dashboard..." />;
 
+  // Point the user at their weakest scored dimension, so the next session has a purpose
+  const DIMENSION_LABELS = { communication: 'communication', technical: 'technical depth', problemSolving: 'problem solving', confidence: 'confidence' };
+  const avg = stats?.averageScores || {};
+  const weakest = stats?.scoredInterviews > 0
+    ? Object.keys(DIMENSION_LABELS).reduce((a, b) => ((avg[b] ?? 101) < (avg[a] ?? 101) ? b : a))
+    : null;
+  const nextSteps = [
+    weakest
+      ? { text: `Your weakest area so far is ${DIMENSION_LABELS[weakest]} (average ${avg[weakest]}/100). Pick an interview type that tests it next.`, type: 'focus' }
+      : { text: 'Complete your first mock interview to get scores on five dimensions.', type: 'info' },
+    !hasResume
+      ? { text: 'Upload your resume so interview questions are grounded in your own projects.', type: 'warning' }
+      : { text: 'Link your resume when you start an interview to get questions about your own projects.', type: 'info' },
+    { text: 'Structure behavioural answers with STAR: situation, task, action, result.', type: 'info' },
+    { text: 'Answer at least 5 questions per session; the scores are more reliable with more evidence.', type: 'info' },
+  ];
+
   const quickActions = [
     { to: '/interview', label: 'Start Mock Interview', desc: 'Practice with AI', icon: Mic, color: '#6c63ff' },
     { to: '/resume', label: hasResume ? 'View Resume Analysis' : 'Upload Resume', desc: hasResume ? 'See AI insights' : 'Get AI feedback', icon: FileText, color: '#00d4ff' },
@@ -87,7 +104,7 @@ const Dashboard = () => {
           </span>
         </div>
         <h1 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: '2rem', marginBottom: '0.5rem' }}>
-          Welcome back, {user?.name?.split(' ')[0]}! 👋
+          Welcome back, {user?.name?.split(' ')[0]}!
         </h1>
         <p style={{ color: 'var(--color-text-muted)', fontSize: '0.95rem' }}>
           {user?.targetRole ? `Preparing for ${user.targetRole}` : 'Ready to practice your interview skills?'}
@@ -232,15 +249,10 @@ const Dashboard = () => {
         {/* Tips / Insights */}
         <div className="card">
           <h2 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: '1.1rem', marginBottom: '1.25rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <TrendingUp size={18} color="var(--color-primary)" /> Smart Insights
+            <TrendingUp size={18} color="var(--color-primary)" /> Next Steps
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {[
-              { text: !hasResume ? 'Upload your resume to get personalized interview questions' : 'Your resume has been analyzed — practice role-specific questions', type: 'info' },
-              { text: 'Practice answering behavioral questions using the STAR method', type: 'success' },
-              { text: 'Review data structures and algorithms before technical rounds', type: 'warning' },
-              { text: 'Record key metrics after each session to identify patterns', type: 'info' },
-            ].map((tip, i) => (
+            {nextSteps.map((tip, i) => (
               <div key={i} style={{
                 display: 'flex',
                 gap: '0.75rem',
@@ -251,8 +263,10 @@ const Dashboard = () => {
                 fontSize: '0.85rem',
                 lineHeight: 1.6,
               }}>
-                <span style={{ fontSize: '1rem', flexShrink: 0 }}>
-                  {tip.type === 'success' ? '✅' : tip.type === 'warning' ? '⚡' : '💡'}
+                <span style={{ flexShrink: 0, display: 'flex', marginTop: 3 }} aria-hidden="true">
+                  {tip.type === 'focus' ? <Target size={16} color="var(--color-error)" />
+                    : tip.type === 'warning' ? <Zap size={16} color="var(--color-warning)" />
+                    : <Lightbulb size={16} color="var(--color-primary)" />}
                 </span>
                 <span style={{ color: 'var(--color-text)' }}>{tip.text}</span>
               </div>

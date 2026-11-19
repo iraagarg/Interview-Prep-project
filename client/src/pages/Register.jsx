@@ -41,7 +41,7 @@ const Register = () => {
         targetRole: form.targetRole,
         experience: form.experience,
       });
-      toast.success('Account created! Welcome aboard 🎉');
+      toast.success('Account created. Welcome aboard!');
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Please try again.');

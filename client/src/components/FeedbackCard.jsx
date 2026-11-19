@@ -1,14 +1,15 @@
-import { Lightbulb, TrendingUp, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, Lightbulb, AlertTriangle, Pin } from 'lucide-react';
 
-const FeedbackCard = ({ title, items = [], type = 'info', icon: Icon }) => {
+const FeedbackCard = ({ title, items = [], type = 'info' }) => {
   const styles = {
-    success: { bg: 'rgba(0, 230, 118, 0.08)', border: 'rgba(0, 230, 118, 0.2)', color: '#00e676', icon: '✅' },
-    warning: { bg: 'rgba(255, 171, 64, 0.08)', border: 'rgba(255, 171, 64, 0.2)', color: '#ffab40', icon: '💡' },
-    error: { bg: 'rgba(255, 82, 82, 0.08)', border: 'rgba(255, 82, 82, 0.2)', color: '#ff5252', icon: '⚠️' },
-    info: { bg: 'rgba(108, 99, 255, 0.08)', border: 'rgba(108, 99, 255, 0.2)', color: '#8b84ff', icon: '📌' },
+    success: { bg: 'rgba(0, 230, 118, 0.08)', border: 'rgba(0, 230, 118, 0.2)', color: '#00e676', Icon: CheckCircle2 },
+    warning: { bg: 'rgba(255, 171, 64, 0.08)', border: 'rgba(255, 171, 64, 0.2)', color: '#ffab40', Icon: Lightbulb },
+    error: { bg: 'rgba(255, 82, 82, 0.08)', border: 'rgba(255, 82, 82, 0.2)', color: '#ff5252', Icon: AlertTriangle },
+    info: { bg: 'rgba(108, 99, 255, 0.08)', border: 'rgba(108, 99, 255, 0.2)', color: '#8b84ff', Icon: Pin },
   };
 
-  const style = styles[type];
+  const style = styles[type] || styles.info;
+  const { Icon } = style;
 
   return (
     <div style={{
@@ -27,7 +28,7 @@ const FeedbackCard = ({ title, items = [], type = 'info', icon: Icon }) => {
         color: style.color,
         marginBottom: '0.75rem'
       }}>
-        {style.icon} {title}
+        <Icon size={16} aria-hidden="true" /> {title}
       </h4>
       <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
         {items.map((item, i) => (
