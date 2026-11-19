@@ -128,7 +128,7 @@ const Register = () => {
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {/* Name */}
             <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.4rem' }}>Full Name</label>
+              <label htmlFor="reg-name" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.4rem' }}>Full Name</label>
               <div style={{ position: 'relative' }}>
                 <User size={17} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
                 <input id="reg-name" type="text" className="input" style={{ paddingLeft: '2.75rem' }} placeholder="John Doe" value={form.name} onChange={update('name')} required />
@@ -137,7 +137,7 @@ const Register = () => {
 
             {/* Email */}
             <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.4rem' }}>Email</label>
+              <label htmlFor="reg-email" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.4rem' }}>Email</label>
               <div style={{ position: 'relative' }}>
                 <Mail size={17} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
                 <input id="reg-email" type="email" className="input" style={{ paddingLeft: '2.75rem' }} placeholder="you@example.com" value={form.email} onChange={update('email')} required autoComplete="email" />
@@ -147,14 +147,14 @@ const Register = () => {
             {/* Target Role + Experience */}
             <div className="rgrid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.4rem' }}>Target Role</label>
+                <label htmlFor="reg-role" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.4rem' }}>Target Role</label>
                 <div style={{ position: 'relative' }}>
                   <Briefcase size={17} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)', zIndex: 1 }} />
                   <input id="reg-role" type="text" className="input" style={{ paddingLeft: '2.75rem' }} placeholder="Software Engineer" value={form.targetRole} onChange={update('targetRole')} />
                 </div>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.4rem' }}>Experience</label>
+                <label htmlFor="reg-experience" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.4rem' }}>Experience</label>
                 <select id="reg-experience" className="input" value={form.experience} onChange={update('experience')}>
                   <option value="fresher">Fresher</option>
                   <option value="1-2 years">1-2 Years</option>
@@ -166,11 +166,11 @@ const Register = () => {
 
             {/* Password */}
             <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.4rem' }}>Password</label>
+              <label htmlFor="reg-password" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.4rem' }}>Password</label>
               <div style={{ position: 'relative' }}>
                 <Lock size={17} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
                 <input id="reg-password" type={showPassword ? 'text' : 'password'} className="input" style={{ paddingLeft: '2.75rem', paddingRight: '2.75rem' }} placeholder="Min 6 characters" value={form.password} onChange={update('password')} required autoComplete="new-password" />
-                <button type="button" onClick={() => setShowPassword(p => !p)} style={{ position: 'absolute', right: '0.85rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: 0 }}>
+                <button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword(p => !p)} style={{ position: 'absolute', right: '0.85rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: 0 }}>
                   {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
               </div>
@@ -178,7 +178,7 @@ const Register = () => {
 
             {/* Confirm Password */}
             <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.4rem' }}>Confirm Password</label>
+              <label htmlFor="reg-confirm-password" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.4rem' }}>Confirm Password</label>
               <div style={{ position: 'relative' }}>
                 <Lock size={17} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
                 <input id="reg-confirm-password" type={showPassword ? 'text' : 'password'} className="input" style={{ paddingLeft: '2.75rem' }} placeholder="Re-enter password" value={form.confirmPassword} onChange={update('confirmPassword')} required autoComplete="new-password" />

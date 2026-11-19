@@ -5,8 +5,8 @@ import { setToken } from '../utils/auth';
 import { User, Mail, Briefcase, Award, Save, Lock, Plus, X, Tag } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const LabelRow = ({ label, icon: Icon }) => (
-  <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--color-text)' }}>
+const LabelRow = ({ label, icon: Icon, htmlFor }) => (
+  <label htmlFor={htmlFor} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--color-text)' }}>
     {Icon && <Icon size={14} color="var(--color-primary)" />}
     {label}
   </label>
@@ -132,8 +132,9 @@ const Profile = () => {
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <div>
-              <LabelRow label="Full Name" icon={User} />
+              <LabelRow label="Full Name" icon={User} htmlFor="pf-name" />
               <input
+                id="pf-name"
                 className="input"
                 value={profileForm.name}
                 onChange={e => setProfileForm(f => ({ ...f, name: e.target.value }))}
@@ -142,15 +143,17 @@ const Profile = () => {
             </div>
 
             <div>
-              <LabelRow label="Email Address" icon={Mail} />
-              <input className="input" value={user?.email} disabled style={{ opacity: 0.5, cursor: 'not-allowed' }} />
+              <LabelRow label="Email Address" icon={Mail} htmlFor="pf-email" />
+              <input id="pf-email" className="input" value={user?.email} disabled style={{ opacity: 0.5, cursor: 'not-allowed' }} />
               <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.3rem' }}>Email cannot be changed</p>
             </div>
 
             <div className="rgrid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
-                <LabelRow label="Target Role" icon={Briefcase} />
+                <LabelRow label="Target Role" icon={Briefcase} htmlFor="pf-role" />
                 <input
+                  id="pf-role"
+                  maxLength={80}
                   className="input"
                   value={profileForm.targetRole}
                   onChange={e => setProfileForm(f => ({ ...f, targetRole: e.target.value }))}
@@ -158,8 +161,9 @@ const Profile = () => {
                 />
               </div>
               <div>
-                <LabelRow label="Experience Level" />
+                <LabelRow label="Experience Level" htmlFor="pf-experience" />
                 <select
+                  id="pf-experience"
                   className="input"
                   value={profileForm.experience}
                   onChange={e => setProfileForm(f => ({ ...f, experience: e.target.value }))}
@@ -174,9 +178,11 @@ const Profile = () => {
 
             {/* Skills */}
             <div>
-              <LabelRow label="Skills" icon={Tag} />
+              <LabelRow label="Skills" icon={Tag} htmlFor="pf-skill" />
               <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
                 <input
+                  id="pf-skill"
+                  maxLength={40}
                   className="input"
                   value={newSkill}
                   onChange={e => setNewSkill(e.target.value)}
@@ -184,15 +190,22 @@ const Profile = () => {
                   placeholder="Add a skill (e.g. React, Python)"
                   style={{ flex: 1 }}
                 />
-                <button type="button" className="btn-primary" onClick={addSkill} style={{ padding: '0.75rem', flexShrink: 0 }}>
+                <button type="button" className="btn-primary" onClick={addSkill} aria-label="Add skill" style={{ padding: '0.75rem', flexShrink: 0 }}>
                   <Plus size={18} />
                 </button>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                 {profileForm.skills.map(skill => (
-                  <span key={skill} className="badge badge-primary" style={{ cursor: 'pointer' }} onClick={() => removeSkill(skill)}>
+                  <button
+                    type="button"
+                    key={skill}
+                    className="badge badge-primary"
+                    style={{ cursor: 'pointer', border: 'none', font: 'inherit' }}
+                    aria-label={`Remove skill ${skill}`}
+                    onClick={() => removeSkill(skill)}
+                  >
                     {skill} <X size={11} />
-                  </span>
+                  </button>
                 ))}
                 {profileForm.skills.length === 0 && (
                   <span style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>No skills added yet</span>
@@ -216,8 +229,10 @@ const Profile = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {['currentPassword', 'newPassword', 'confirmPassword'].map((field) => (
               <div key={field}>
-                <LabelRow label={field === 'currentPassword' ? 'Current Password' : field === 'newPassword' ? 'New Password' : 'Confirm New Password'} icon={Lock} />
+                <LabelRow label={field === 'currentPassword' ? 'Current Password' : field === 'newPassword' ? 'New Password' : 'Confirm New Password'} icon={Lock} htmlFor={`pf-${field}`} />
                 <input
+                  id={`pf-${field}`}
+                  autoComplete={field === 'currentPassword' ? 'current-password' : 'new-password'}
                   type="password"
                   className="input"
                   value={passwordForm[field]}

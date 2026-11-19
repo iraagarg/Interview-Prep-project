@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -58,6 +58,22 @@ const Navbar = () => {
     return () => { document.body.style.overflow = ''; };
   }, [isMobile, drawerOpen]);
 
+  // Keyboard support for the drawer: focus moves into it on open, Escape closes it
+  const navRef = useRef(null);
+  const menuButtonRef = useRef(null);
+  useEffect(() => {
+    if (!isMobile || !drawerOpen) return undefined;
+    navRef.current?.querySelector('a, button')?.focus();
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setDrawerPath(null);
+        menuButtonRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isMobile, drawerOpen]);
+
   const handleLogout = () => {
     logout();
     navigate('/');
@@ -89,6 +105,7 @@ const Navbar = () => {
     {isMobile && (
       <header className="mobile-topbar">
         <button
+          ref={menuButtonRef}
           className="icon-btn"
           aria-label={drawerOpen ? 'Close menu' : 'Open menu'}
           aria-expanded={drawerOpen}
@@ -110,7 +127,10 @@ const Navbar = () => {
       <div className="drawer-backdrop" onClick={() => setDrawerOpen(false)} aria-hidden="true" />
     )}
     <nav
+      ref={navRef}
       aria-label="Main navigation"
+      // A closed drawer is only moved off-screen; inert keeps its links out of the tab order
+      inert={isMobile && !drawerOpen}
       style={{
         background: 'var(--color-surface)',
         borderRight: '1px solid var(--color-border)',

@@ -111,7 +111,7 @@ const Login = () => {
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' }}>
+              <label htmlFor="login-email" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' }}>
                 Email
               </label>
               <div style={{ position: 'relative' }}>
@@ -137,7 +137,7 @@ const Login = () => {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' }}>
+              <label htmlFor="login-password" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' }}>
                 Password
               </label>
               <div style={{ position: 'relative' }}>
@@ -161,6 +161,7 @@ const Login = () => {
                 />
                 <button
                   type="button"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                   onClick={() => setShowPassword(p => !p)}
                   style={{
                     position: 'absolute',

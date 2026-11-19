@@ -74,7 +74,7 @@ body {
 
 /* Buttons */
 .btn-primary {
-  background: linear-gradient(135deg, var(--color-primary), #9c94ff);
+  background: linear-gradient(135deg, #5b52f0, #6d4ff0); /* white text stays above 4.5:1 contrast */
   color: white;
   border: none;
   padding: 0.75rem 1.75rem;
@@ -312,7 +312,7 @@ select.input {
 }
 
 .chat-bubble-user {
-  background: linear-gradient(135deg, var(--color-primary), #9c94ff);
+  background: linear-gradient(135deg, #5b52f0, #6d4ff0);
   border-radius: 18px 18px 4px 18px;
   padding: 1rem 1.25rem;
   max-width: 80%;
