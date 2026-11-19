@@ -54,11 +54,7 @@ const AppRoutes = () => {
 };
 
 const App = () => {
-  useEffect(() => {
-    wakeServer();
-    // The app loaded fine, so a future stale-chunk error may trigger one automatic reload again
-    sessionStorage.removeItem('chunk-reloaded');
-  }, []);
+  useEffect(() => { wakeServer(); }, []);
   return (
   <BrowserRouter>
     <AuthProvider>

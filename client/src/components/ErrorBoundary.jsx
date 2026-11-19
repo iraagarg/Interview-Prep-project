@@ -17,9 +17,13 @@ class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error) {
-    // A stale chunk is fixed by loading the new build; reload once automatically
-    if (isStaleChunk(error) && !sessionStorage.getItem('chunk-reloaded')) {
-      sessionStorage.setItem('chunk-reloaded', '1');
+    // A stale chunk is fixed by loading the new build. Reload automatically at most once a
+    // minute, so a genuinely broken release can't put the page into a reload loop.
+    if (!isStaleChunk(error)) return;
+    let last = 0;
+    try { last = Number(sessionStorage.getItem('chunk-reloaded-at')) || 0; } catch { /* storage blocked */ }
+    if (Date.now() - last > 60000) {
+      try { sessionStorage.setItem('chunk-reloaded-at', String(Date.now())); } catch { /* storage blocked */ }
       window.location.reload();
     }
   }
