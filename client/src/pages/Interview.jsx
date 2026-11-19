@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import { useSpeechToText, useTextToSpeech } from '../utils/useSpeech';
@@ -9,7 +10,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import toast from 'react-hot-toast';
 import {
   Send, Mic, MicOff, Square, Volume2, VolumeX, RotateCcw,
-  MessageSquare, Briefcase, Brain, Info
+  MessageSquare, Briefcase, Brain, Info, PartyPopper, Lightbulb
 } from 'lucide-react';
 
 const SETUP_STEP = 'setup';
@@ -18,6 +19,9 @@ const DONE_STEP = 'done';
 
 const Interview = () => {
   const { user } = useAuth();
+  // The session id lives in the URL, so a refresh or a link from History resumes the same interview
+  const [searchParams, setSearchParams] = useSearchParams();
+  const sessionId = searchParams.get('id');
 
   const [step, setStep] = useState(SETUP_STEP);
   const [interview, setInterview] = useState(null);
@@ -28,6 +32,7 @@ const Interview = () => {
   const [ending, setEnding] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const [resumes, setResumes] = useState([]);
+  const [restoring, setRestoring] = useState(Boolean(sessionId));
 
   const [config, setConfig] = useState({
     role: user?.targetRole || 'Software Engineer',
@@ -62,6 +67,58 @@ const Interview = () => {
     api.get('/resume/all').then(r => setResumes(r.data.resumes || [])).catch(() => {});
   }, []);
 
+  // Resume a session after a refresh, or when opened from History (?id=...)
+  useEffect(() => {
+    if (!sessionId || interview?._id === sessionId) {
+      setRestoring(false);
+      return;
+    }
+    let cancelled = false;
+    setRestoring(true);
+    api.get(`/interview/${sessionId}`)
+      .then(async ({ data }) => {
+        if (cancelled) return;
+        const iv = data.interview;
+        setInterview(iv);
+        if (iv.status === 'completed') {
+          setFeedback(iv.feedback);
+          setStep(DONE_STEP);
+          return;
+        }
+        if (iv.status === 'abandoned') {
+          toast.error('That interview was abandoned. Start a new session.');
+          setSearchParams({}, { replace: true });
+          return;
+        }
+        const visible = (iv.messages || []).filter(m => m.role !== 'system');
+        setMessages(visible);
+        setStep(CHAT_STEP);
+        if (!visible.length) {
+          setTyping(true);
+          const res = await api.post(`/chat/start/${iv._id}`);
+          if (!cancelled) setMessages([{ role: 'assistant', content: res.data.message, timestamp: new Date() }]);
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        toast.error('Could not load that interview');
+        setSearchParams({}, { replace: true });
+      })
+      .finally(() => {
+        if (!cancelled) { setRestoring(false); setTyping(false); }
+      });
+    return () => { cancelled = true; };
+  }, [sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Warn before closing or reloading the tab mid-interview (the session can be resumed, but say so)
+  const answered = messages.some(m => m.role === 'user');
+  useEffect(() => {
+    if (step !== CHAT_STEP || !answered || ending) return undefined;
+    const warn = (e) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [step, answered, ending]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, typing]);
@@ -73,6 +130,7 @@ const Interview = () => {
       const createRes = await api.post('/interview', config);
       const iv = createRes.data.interview;
       setInterview(iv);
+      setSearchParams({ id: iv._id }, { replace: true });
 
       // Start chat
       setTyping(true);
@@ -83,6 +141,7 @@ const Interview = () => {
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to start interview');
       setStep(SETUP_STEP);
+      setSearchParams({}, { replace: true });
     } finally {
       setSending(false);
       setTyping(false);
@@ -90,8 +149,8 @@ const Interview = () => {
   };
 
   const sendMessage = async () => {
-    if (!input.trim() || sending || typing) return;
-    if (stt.listening) stt.stop();
+    if (!input.trim() || sending || typing || ending) return;
+    if (stt.listening) stt.abort(); // send exactly what is in the box; drop any pending phrase
     tts.cancel();
 
     const userMsg = { role: 'user', content: input.trim(), timestamp: new Date() };
@@ -115,12 +174,14 @@ const Interview = () => {
   };
 
   const endInterview = async () => {
+    // Never score while an answer is in flight: the last answer would be missed
+    if (sending || typing || ending) return;
     if (messages.filter(m => m.role === 'user').length < 2) {
       return toast.error('Please answer at least 2 questions before ending');
     }
     setEnding(true);
     tts.cancel();
-    if (stt.listening) stt.stop();
+    if (stt.listening) stt.abort();
     try {
       const res = await api.post(`/chat/end/${interview._id}`);
       setFeedback(res.data.feedback);
@@ -140,6 +201,8 @@ const Interview = () => {
     }
   };
 
+  if (restoring) return <LoadingSpinner message="Loading your interview..." />;
+
   // ─── SETUP SCREEN ────────────────────────────────────────────────────────────
   if (step === SETUP_STEP) {
     return (
@@ -155,11 +218,13 @@ const Interview = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             {/* Role */}
             <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>
+              <label htmlFor="iv-role" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>
                 <Briefcase size={14} style={{ display: 'inline', marginRight: '0.4rem' }} />
                 Target Role
               </label>
               <input
+                id="iv-role"
+                maxLength={80}
                 className="input"
                 placeholder="e.g. Software Engineer, Product Manager"
                 value={config.role}
@@ -170,16 +235,16 @@ const Interview = () => {
             {/* Type + Difficulty */}
             <div className="rgrid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>Interview Type</label>
-                <select className="input" value={config.type} onChange={e => setConfig(c => ({ ...c, type: e.target.value }))}>
+                <label htmlFor="iv-type" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>Interview Type</label>
+                <select id="iv-type" className="input" value={config.type} onChange={e => setConfig(c => ({ ...c, type: e.target.value }))}>
                   <option value="mixed">Mixed (HR + Technical)</option>
                   <option value="technical">Technical Only</option>
                   <option value="hr">HR / Behavioral</option>
                 </select>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>Difficulty</label>
-                <select className="input" value={config.difficulty} onChange={e => setConfig(c => ({ ...c, difficulty: e.target.value }))}>
+                <label htmlFor="iv-difficulty" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>Difficulty</label>
+                <select id="iv-difficulty" className="input" value={config.difficulty} onChange={e => setConfig(c => ({ ...c, difficulty: e.target.value }))}>
                   <option value="easy">Easy</option>
                   <option value="medium">Medium</option>
                   <option value="hard">Hard</option>
@@ -190,10 +255,10 @@ const Interview = () => {
             {/* Resume */}
             {resumes.length > 0 && (
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>
+                <label htmlFor="iv-resume" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>
                   Link Resume (Optional)
                 </label>
-                <select className="input" value={config.resumeId} onChange={e => setConfig(c => ({ ...c, resumeId: e.target.value }))}>
+                <select id="iv-resume" className="input" value={config.resumeId} onChange={e => setConfig(c => ({ ...c, resumeId: e.target.value }))}>
                   <option value="">No resume</option>
                   {resumes.map(r => (
                     <option key={r._id} value={r._id}>{r.fileName}</option>
@@ -207,12 +272,13 @@ const Interview = () => {
 
             {/* Tips */}
             <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: '1rem', border: '1px solid var(--color-border)' }}>
-              <p style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem' }}>💡 Tips for best experience:</p>
+              <p style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Lightbulb size={15} color="var(--color-warning)" /> Tips for the best experience</p>
               <ul style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', paddingLeft: '1rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                 <li>Answer questions in the same way you would in a real interview</li>
                 <li>Be specific with examples from your experience</li>
                 <li>Take your time — there's no rush</li>
                 <li>Answer at least 5-6 questions for meaningful feedback</li>
+                <li>You can leave and come back: the session is saved in History</li>
               </ul>
             </div>
 
@@ -241,12 +307,12 @@ const Interview = () => {
       <div style={{ maxWidth: 900, margin: '0 auto', animation: 'fadeInUp 0.4s ease' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
           <div>
-            <h1 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: '1.75rem', marginBottom: '0.25rem' }}>
-              🎉 Interview Complete!
+            <h1 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: '1.75rem', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <PartyPopper size={26} color="var(--color-primary)" /> Interview Complete
             </h1>
             <p style={{ color: 'var(--color-text-muted)' }}>Here's your detailed performance analysis</p>
           </div>
-          <button className="btn-secondary" onClick={() => { setStep(SETUP_STEP); setMessages([]); setInterview(null); setFeedback(null); }}>
+          <button className="btn-secondary" onClick={() => { setStep(SETUP_STEP); setMessages([]); setInterview(null); setFeedback(null); setSearchParams({}, { replace: true }); }}>
             <RotateCcw size={16} /> New Session
           </button>
         </div>
@@ -318,7 +384,8 @@ const Interview = () => {
           <button
             className="btn-danger"
             onClick={endInterview}
-            disabled={ending}
+            disabled={ending || sending || typing}
+            title={sending || typing ? 'Wait for the next question before ending' : 'End the interview and get your feedback'}
             style={{ padding: '0.6rem 1.1rem', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
           >
             {ending ? 'Scoring...' : <><Square size={14} /> End</>}

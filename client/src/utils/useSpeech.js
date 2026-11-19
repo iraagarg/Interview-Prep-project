@@ -11,15 +11,27 @@ const Recognition = typeof window !== 'undefined'
   ? window.SpeechRecognition || window.webkitSpeechRecognition
   : undefined;
 
-export const useSpeechToText = ({ onText, lang = 'en-IN' } = {}) => {
+// Interviews are in English: use the browser's English variant (en-IN, en-GB...) when it has one
+const defaultLang = () => {
+  const l = typeof navigator !== 'undefined' ? navigator.language || '' : '';
+  return /^en(-|$)/i.test(l) ? l : 'en-US';
+};
+
+export const useSpeechToText = ({ onText, lang = defaultLang() } = {}) => {
   const [listening, setListening] = useState(false);
   const [error, setError] = useState('');
   const recRef = useRef(null);
   const onTextRef = useRef(onText);
   useEffect(() => { onTextRef.current = onText; }, [onText]);
 
+  // stop() still delivers the last pending phrase; abort() discards it (used when sending)
   const stop = useCallback(() => {
     recRef.current?.stop();
+  }, []);
+
+  const abort = useCallback(() => {
+    recRef.current?.abort();
+    setListening(false);
   }, []);
 
   const start = useCallback(() => {
@@ -52,7 +64,7 @@ export const useSpeechToText = ({ onText, lang = 'en-IN' } = {}) => {
 
   useEffect(() => () => recRef.current?.abort(), []);
 
-  return { supported: Boolean(Recognition), listening, start, stop, error };
+  return { supported: Boolean(Recognition), listening, start, stop, abort, error };
 };
 
 export const useTextToSpeech = () => {
