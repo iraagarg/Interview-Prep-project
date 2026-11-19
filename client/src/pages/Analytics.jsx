@@ -5,6 +5,7 @@ import { ProgressChart, SkillsRadar } from '../components/ProgressChart';
 import { ScoreRing } from '../components/ScoreCard';
 import FeedbackCard from '../components/FeedbackCard';
 import { BarChart2, TrendingUp, Target, Zap, RefreshCw } from 'lucide-react';
+import { formatMinutes } from '../utils/format';
 
 const Analytics = () => {
   const [overview, setOverview] = useState(null);
@@ -108,7 +109,7 @@ const Analytics = () => {
         {[
           { label: 'Total Sessions', value: overview.totalInterviews, icon: Zap, color: '#6c63ff' },
           { label: 'Completed', value: overview.completedInterviews, icon: Target, color: '#00e676' },
-          { label: 'Practice Time', value: `${Math.round(overview.totalDuration / 60)}h`, icon: TrendingUp, color: '#00d4ff' },
+          { label: 'Practice Time', value: formatMinutes(overview.totalDuration), icon: TrendingUp, color: '#00d4ff' },
         ].map(stat => {
           const Icon = stat.icon;
           return (
@@ -153,13 +154,13 @@ const Analytics = () => {
       {skills && (
         <div className="rgrid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
           <FeedbackCard
-            title="Top Strengths"
-            items={skills.topStrengths.map(s => s.text)}
+            title="Recent Strengths"
+            items={skills.recentStrengths.map(s => s.text)}
             type="success"
           />
           <FeedbackCard
-            title="Key Improvement Areas"
-            items={skills.topImprovements.map(s => s.text)}
+            title="Recent Improvement Areas"
+            items={skills.recentImprovements.map(s => s.text)}
             type="warning"
           />
         </div>

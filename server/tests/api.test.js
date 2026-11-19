@@ -192,7 +192,9 @@ describe('interview lifecycle', () => {
     }
     const me = await request(app).get('/api/auth/me').set(auth(tokenA));
     expect(me.body.user.totalInterviews).toBe(1);
-    expect(me.body.user.averageScore).toBe(fb.overallScore);
+    // Tests run without an AI key, so this is a fallback score: counted, but kept out of averages
+    expect(fb.source).toBe('fallback');
+    expect(me.body.user.averageScore).toBe(0);
   });
 
   test('ending twice is idempotent and answering after the end is rejected', async () => {
@@ -222,6 +224,7 @@ describe('history and analytics', () => {
   test('analytics aggregate only the caller\'s completed sessions', async () => {
     const a = await request(app).get('/api/analytics/overview').set(auth(tokenA));
     expect(a.body.stats.completedInterviews).toBe(1);
+    expect(a.body.stats.scoredInterviews).toBe(0); // fallback-scored sessions are not averaged
     const b = await request(app).get('/api/analytics/overview').set(auth(tokenB));
     expect(b.body.stats.completedInterviews).toBe(0);
     const skills = await request(app).get('/api/analytics/skills').set(auth(tokenA));

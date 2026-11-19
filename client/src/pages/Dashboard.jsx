@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import { Mic, FileText, BarChart2, History, TrendingUp, Award, Clock, CheckCircle, ChevronRight, Sparkles } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { formatMinutes } from '../utils/format';
 
 const QuickStat = ({ label, value, icon: Icon, color, sub }) => (
   <div className="stat-card" style={{ flex: 1 }}>
@@ -111,11 +112,11 @@ const Dashboard = () => {
           sub={stats?.averageScores?.overall ? '/100' : 'No data yet'}
         />
         <QuickStat
-          label="Hours Practiced"
-          value={stats?.totalDuration ? Math.round(stats.totalDuration / 60) : 0}
+          label="Practice Time"
+          value={formatMinutes(stats?.totalDuration)}
           icon={Clock}
           color="#00d4ff"
-          sub="hours total"
+          sub="across all sessions"
         />
       </div>
 

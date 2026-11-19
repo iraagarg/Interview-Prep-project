@@ -6,9 +6,16 @@ const User = require('../models/User');
  * Called whenever an interview is completed or deleted, so the numbers can never drift.
  */
 const recalcUserStats = async (userId) => {
+  // Same rule as the analytics page: fallback (heuristic) scores are counted but not averaged
   const [agg] = await Interview.aggregate([
     { $match: { user: userId, status: 'completed' } },
-    { $group: { _id: null, count: { $sum: 1 }, avg: { $avg: '$feedback.overallScore' } } },
+    {
+      $group: {
+        _id: null,
+        count: { $sum: 1 },
+        avg: { $avg: { $cond: [{ $eq: ['$feedback.source', 'fallback'] }, null, '$feedback.overallScore'] } },
+      },
+    },
   ]);
   await User.findByIdAndUpdate(userId, {
     totalInterviews: agg ? agg.count : 0,
