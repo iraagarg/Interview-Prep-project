@@ -15,8 +15,6 @@ export const setUser = (user) =>
 
 export const removeUser = () => localStorage.removeItem('user');
 
-export const isAuthenticated = () => !!getToken();
-
 export const logout = () => {
   removeToken();
   removeUser();
